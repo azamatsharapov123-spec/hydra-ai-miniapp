@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     quality,
     format,
     websearch,
-    enable_audio,
+    audio_mode,
     voice,
     cost,
     user_coins_client
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'FAL_KEY не настроен в переменном окружении Vercel' });
   }
 
-  // 1. Проверка баланса перед генерацией
+  // 1. Проверка баланса токенов на сервере
   const generationCost = parseInt(cost, 10) || 5;
   let currentBalance = parseInt(user_coins_client, 10);
 
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Недостаточно токенов на балансе для генерации' });
   }
 
-  // Списываем токены
+  // Списание токенов
   currentBalance -= generationCost;
 
   // 2. Бесплатный AI Чат (Gemini Flash)
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
 
   const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
 
-  // 4. Формирование тела запроса (Payload) для Fal.ai
+  // 4. Формирование тела запроса (Payload) под параметры Fal.ai
   const payload = { prompt };
 
   if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
   if (quality) payload.quality = quality;
   if (format) payload.output_format = format;
   if (typeof websearch === 'boolean') payload.web_search = websearch;
-  if (typeof enable_audio === 'boolean') payload.enable_audio = enable_audio;
+  if (audio_mode) payload.audio_mode = audio_mode;
   if (voice) payload.voice = voice;
 
   try {
@@ -168,7 +168,6 @@ export default async function handler(req, res) {
       result: { url: mediaUrl }
     });
   } catch (error) {
-    // Если на стороне Fal.ai произошла ошибка после списания, в продакшене здесь можно вернуть токены пользователю.
     return res.status(500).json({ error: error.message });
   }
 }
