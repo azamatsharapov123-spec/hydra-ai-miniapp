@@ -117,6 +117,22 @@
         .empty-history { text-align: center; padding: 50px 10px; }
         .empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.6; }
 
+        /* ИСТОРИЯ СТИЛИ */
+        .history-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+        .history-card {
+            background: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .history-media { width: 100%; height: 140px; object-fit: cover; background: #000; display: block; }
+        .history-info { padding: 10px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .history-prompt { font-size: 11px; color: var(--text-main); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 6px; }
+        .history-meta { font-size: 9px; color: var(--text-secondary); margin-bottom: 8px; }
+        .history-btn {
+            background: rgba(255,255,255,0.08); border: 1px solid var(--border-color);
+            color: #fff; font-size: 11px; font-weight: 700; padding: 6px; border-radius: 8px;
+            text-align: center; text-decoration: none; display: block; cursor: pointer;
+        }
+
         .chat-box {
             display: flex; flex-direction: column; height: 380px;
             background: #09090b; border: 1px solid var(--border-color);
@@ -285,13 +301,7 @@
             <button class="tab-btn" onclick="filterHistory('audio', this)">Аудио</button>
             <button class="tab-btn" onclick="filterHistory('avatar', this)">Аватары</button>
         </div>
-        <div id="history-content">
-            <div class="empty-history">
-                <div class="empty-icon">🔲</div>
-                <p style="color:var(--text-secondary); font-size:14px;">У вас пока нет созданных генераций</p>
-                <button class="btn-main" style="width:140px; margin:12px auto 0 auto;" onclick="switchPage('home')">Создать</button>
-            </div>
-        </div>
+        <div id="history-content"></div>
     </div>
 
     <!-- 5. ПРОФИЛЬ -->
@@ -363,12 +373,6 @@
 
             <!-- ПОЛЯ ДЛЯ КАРТИНОК -->
             <div id="fields-image" style="display:none;">
-                <label>Референс изображение:</label>
-                <div class="upload-box" onclick="document.getElementById('img-ref-file').click()">
-                    <span id="lbl-img-ref" style="font-size:12px; color:var(--accent-color);">📁 Загрузить фото-референс</span>
-                    <input type="file" id="img-ref-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-img-ref').innerText=this.files[0].name">
-                </div>
-
                 <label>Соотношение сторон:</label>
                 <select id="img-aspect">
                     <option value="1:1">Квадрат (1:1)</option>
@@ -388,14 +392,6 @@
 
             <!-- ПОЛЯ ДЛЯ ВИДЕО -->
             <div id="fields-video" style="display:none;">
-                <div id="group-start-img">
-                    <label>Начальный кадр:</label>
-                    <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
-                        <span id="lbl-vid-start" style="font-size:12px; color:var(--accent-color);">📁 Загрузить кадр</span>
-                        <input type="file" id="vid-start-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-start').innerText=this.files[0].name">
-                    </div>
-                </div>
-
                 <label>Соотношение сторон:</label>
                 <select id="vid-aspect">
                     <option value="16:9">16:9</option>
@@ -419,21 +415,10 @@
                     <option value="auto">Автоматический режим</option>
                     <option value="text">Свой текст</option>
                 </select>
-                <label>Голос / Исполнение:</label>
-                <select id="aud-voice">
-                    <option value="male">Мужской голос</option>
-                    <option value="female">Женский голос</option>
-                </select>
             </div>
 
             <!-- ПОЛЯ ДЛЯ АВАТАРОВ -->
-            <div id="fields-avatar" style="display:none;">
-                <label>Загрузите фото с лицом:</label>
-                <div class="upload-box" onclick="document.getElementById('av-files').click()">
-                    <span id="lbl-av" style="font-size:12px; color:var(--accent-color);">📁 Выбрать файлы</span>
-                    <input type="file" id="av-files" class="file-hidden" accept="image/*,video/*" onchange="document.getElementById('lbl-av').innerText='Выбрано файлов: '+this.files.length">
-                </div>
-            </div>
+            <div id="fields-avatar" style="display:none;"></div>
 
             <div style="margin-top:12px;">
                 <label>Запрос (Промпт): <button class="btn-magic" onclick="enhanceTextPrompt()">✨ Улучшить</button></label>
@@ -459,11 +444,27 @@
         tg.expand();
 
         let activeCategory = 'image';
+        let currentFilter = 'all';
+
         let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
         if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
         document.getElementById('coins').innerText = userCoins;
 
-        // ПОЛНЫЙ РАСШИРЕННЫЙ КАТАЛОГ ВСЕХ МОДЕЛЕЙ И ТОЧНЫХ ЦЕН
+        // ПОЛУЧЕНИЕ ИСТОРИИ ИЗ LOCALSTORAGE
+        function getHistoryList() {
+            try {
+                return JSON.parse(localStorage.getItem('hydra_history')) || [];
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function saveHistoryItem(item) {
+            let list = getHistoryList();
+            list.unshift(item);
+            localStorage.setItem('hydra_history', JSON.stringify(list));
+        }
+
         const sortedModels = {
             image: [
                 { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
@@ -531,11 +532,61 @@
             document.getElementById(`page-${pageId}`).classList.add('active-page');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
+
+            if (pageId === 'history') {
+                renderHistory();
+            }
         }
 
         function filterHistory(type, btn) {
+            currentFilter = type;
             document.querySelectorAll('#page-history .tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            renderHistory();
+        }
+
+        // ОТОБРАЖЕНИЕ ИСТОРИИ
+        function renderHistory() {
+            const container = document.getElementById('history-content');
+            const list = getHistoryList();
+            
+            const filtered = currentFilter === 'all' ? list : list.filter(i => i.category === currentFilter);
+
+            if (!filtered || filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-history">
+                        <div class="empty-icon">🔲</div>
+                        <p style="color:var(--text-secondary); font-size:14px;">История пока пуста</p>
+                        <button class="btn-main" style="width:140px; margin:12px auto 0 auto;" onclick="switchPage('home')">Создать</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="history-grid">';
+            filtered.forEach(item => {
+                let mediaTag = `<img src="${item.url}" class="history-media" alt="Media">`;
+                if (item.category === 'video') {
+                    mediaTag = `<video src="${item.url}" class="history-media" controls preload="metadata"></video>`;
+                } else if (item.category === 'audio') {
+                    mediaTag = `<div class="history-media" style="display:flex; align-items:center; justify-content:center; font-size:35px;">🎵</div>`;
+                }
+
+                html += `
+                    <div class="history-card">
+                        ${mediaTag}
+                        <div class="history-info">
+                            <div>
+                                <div class="history-prompt">${item.prompt || 'Без запроса'}</div>
+                                <div class="history-meta">${item.model} • ${item.date}</div>
+                            </div>
+                            <a href="${item.url}" target="_blank" class="history-btn">Открыть / Скачать</a>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function openModal(cat) {
@@ -545,12 +596,10 @@
             document.getElementById('fields-image').style.display = 'none';
             document.getElementById('fields-video').style.display = 'none';
             document.getElementById('fields-audio').style.display = 'none';
-            document.getElementById('fields-avatar').style.display = 'none';
 
             if (cat === 'image') document.getElementById('fields-image').style.display = 'block';
             if (cat === 'video') document.getElementById('fields-video').style.display = 'block';
             if (cat === 'audio') document.getElementById('fields-audio').style.display = 'block';
-            if (cat === 'avatar') document.getElementById('fields-avatar').style.display = 'block';
 
             const select = document.getElementById('modal-model-select');
             select.innerHTML = '';
@@ -578,9 +627,7 @@
             recalculateCost();
         }
 
-        function onModelSelectChange() {
-            recalculateCost();
-        }
+        function onModelSelectChange() { recalculateCost(); }
 
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
@@ -657,12 +704,6 @@
                 user_coins_client: userCoins
             };
 
-            if (activeCategory === 'image') {
-                bodyData.aspect_ratio = document.getElementById('img-aspect') ? document.getElementById('img-aspect').value : '1:1';
-            } else if (activeCategory === 'video') {
-                bodyData.duration = document.getElementById('vid-dur') ? document.getElementById('vid-dur').value : 5;
-            }
-
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
@@ -671,17 +712,26 @@
                 });
 
                 const data = await res.json();
-                if (res.ok && data.success) {
+                if (res.ok && data.success && data.result?.url) {
                     userCoins = data.new_balance;
                     localStorage.setItem('hydra_user_coins', userCoins);
                     document.getElementById('coins').innerText = userCoins;
+
+                    // СОХРАНЯЕМ В ИСТОРИЮ
+                    saveHistoryItem({
+                        url: data.result.url,
+                        prompt: prompt,
+                        model: model,
+                        category: activeCategory,
+                        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
 
                     alert(`Генерация успешно завершена! Списано: ${costToSpend} ⚡`);
                     closeModal();
                     switchPage('history');
                 } else {
                     const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || "Неизвестная ошибка");
-                    alert("Ошибка: " + errorMsg);
+                    alert("Ошибка генерации: " + errorMsg);
                 }
             } catch (e) {
                 alert("Ошибка сети при обращении к серверу");
@@ -717,6 +767,9 @@
                 document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
             }
         }
+
+        // Инициализация истории при первом открытии
+        renderHistory();
     </script>
 </body>
 </html>
