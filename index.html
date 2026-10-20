@@ -137,18 +137,8 @@
             display: flex; align-items: center; justify-content: center;
             font-weight: 800; font-size: 20px;
         }
-        .partner-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr);
-            gap: 10px; margin-top: 12px; margin-bottom: 12px;
-        }
-        .stat-card {
-            background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
-            padding: 12px; border-radius: 12px;
-        }
 
-        .packages-list {
-            display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
-        }
+        .packages-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .package-card {
             background: rgba(0,0,0,0.4); border: 1px solid var(--border-color);
             border-radius: 14px; padding: 14px; display: flex; justify-content: space-between; align-items: center;
@@ -373,20 +363,75 @@
 
             <!-- ПОЛЯ ДЛЯ КАРТИНОК -->
             <div id="fields-image" style="display:none;">
+                <label>Референс изображение:</label>
+                <div class="upload-box" onclick="document.getElementById('img-ref-file').click()">
+                    <span id="lbl-img-ref" style="font-size:12px; color:var(--accent-color);">📁 Загрузить фото-референс</span>
+                    <input type="file" id="img-ref-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-img-ref').innerText=this.files[0].name">
+                </div>
+
                 <label>Соотношение сторон:</label>
                 <select id="img-aspect">
                     <option value="1:1">Квадрат (1:1)</option>
                     <option value="16:9">Горизонтальное (16:9)</option>
                     <option value="9:16">Вертикальное (9:16)</option>
+                    <option value="4:3">Портрет (4:3)</option>
+                    <option value="3:4">Альбом (3:4)</option>
+                </select>
+
+                <label>Разрешение:</label>
+                <select id="img-res" onchange="recalculateCost()">
+                    <option value="1k">1K Standard</option>
+                    <option value="2k">2K HD (+1 ⚡)</option>
+                    <option value="4k">4K Ultra HD (+2 ⚡)</option>
                 </select>
             </div>
 
             <!-- ПОЛЯ ДЛЯ ВИДЕО -->
             <div id="fields-video" style="display:none;">
-                <label>Длительность (сек):</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
-                    <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
+                <div id="group-start-img">
+                    <label>Начальный кадр:</label>
+                    <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
+                        <span id="lbl-vid-start" style="font-size:12px; color:var(--accent-color);">📁 Загрузить кадр</span>
+                        <input type="file" id="vid-start-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-start').innerText=this.files[0].name">
+                    </div>
+                </div>
+
+                <label>Соотношение сторон:</label>
+                <select id="vid-aspect">
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="1:1">1:1</option>
+                </select>
+
+                <div id="group-duration">
+                    <label>Длительность (сек):</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
+                        <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ПОЛЯ ДЛЯ АУДИО -->
+            <div id="fields-audio" style="display:none;">
+                <label>Режим работы:</label>
+                <select id="aud-mode">
+                    <option value="auto">Автоматический режим</option>
+                    <option value="text">Свой текст</option>
+                </select>
+                <label>Голос / Исполнение:</label>
+                <select id="aud-voice">
+                    <option value="male">Мужской голос</option>
+                    <option value="female">Женский голос</option>
+                </select>
+            </div>
+
+            <!-- ПОЛЯ ДЛЯ АВАТАРОВ -->
+            <div id="fields-avatar" style="display:none;">
+                <label>Загрузите фото с лицом:</label>
+                <div class="upload-box" onclick="document.getElementById('av-files').click()">
+                    <span id="lbl-av" style="font-size:12px; color:var(--accent-color);">📁 Выбрать файлы</span>
+                    <input type="file" id="av-files" class="file-hidden" accept="image/*,video/*" onchange="document.getElementById('lbl-av').innerText='Выбрано файлов: '+this.files.length">
                 </div>
             </div>
 
@@ -418,30 +463,62 @@
         if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
         document.getElementById('coins').innerText = userCoins;
 
-        // ПОЛНЫЙ КАТАЛОГ ВСЕХ МОДЕЛЕЙ И СТОИМОСТИ
+        // ПОЛНЫЙ РАСШИРЕННЫЙ КАТАЛОГ ВСЕХ МОДЕЛЕЙ И ТОЧНЫХ ЦЕН
         const sortedModels = {
             image: [
                 { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
                 { id: 'nanobanana-2.1', name: 'Nano Banana 2.1', baseCost: 2 },
                 { id: 'nanobanana-1', name: 'Nano Banana 1', baseCost: 1 },
+                { id: 'nanobanana-2k', name: 'Nano Banana 2K', baseCost: 2 },
+                { id: 'nanobanana-2f', name: 'Nano Banana 2F', baseCost: 3 },
                 { id: 'qwen-edit', name: 'Qwen Image Edit', baseCost: 1 },
+                { id: 'grok-imagine', name: 'Grok Imagine', baseCost: 2 },
                 { id: 'seedream-5pro', name: 'Seedream 5 Pro', baseCost: 2 },
                 { id: 'seedream-1', name: 'Seedream 1', baseCost: 1 },
-                { id: 'gpt-image-2.5', name: 'GPT Image 2.5', baseCost: 1 }
+                { id: 'seedream-4.5', name: 'Seedream 4.5', baseCost: 2 },
+                { id: 'seedream-5lite', name: 'Seedream 5 Lite', baseCost: 1 },
+                { id: 'grok-imagine-2', name: 'Grok Imagine 2.0', baseCost: 3 },
+                { id: 'gpt-image-2.5', name: 'GPT Image 2.5', baseCost: 1 },
+                { id: 'gpt-image-1.5', name: 'GPT Image 1.5', baseCost: 1 },
+                { id: 'gpt-image-2', name: 'GPT Image 2.0', baseCost: 2 }
             ],
             video: [
-                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30 },
-                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15 },
-                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10 },
-                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15 },
-                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10 },
-                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8, maxDur: 10 },
-                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15 },
-                { id: 'runway', name: 'Runway Gen3', baseCost: 60, maxDur: 10 }
+                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30, fixed: true },
+                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15, fixed: true },
+                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1', baseCost: 22, maxDur: 15, fixed: true },
+                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10, fixed: true },
+                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 9, maxDur: 10, fixed: true },
+                { id: 'grok-video-1.5', name: 'Grok Video 1.5', baseCost: 15, maxDur: 10, fixed: true },
+                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15, fixed: true },
+                { id: 'kling-3.0-mc', name: 'Kling 3.0 MC', baseCost: 25, maxDur: 15, fixed: true },
+                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10, fixed: true },
+                { id: 'kling-o3', name: 'Kling O3', baseCost: 19, maxDur: 15, fixed: true },
+                { id: 'kling-o1', name: 'Kling O1', baseCost: 16, maxDur: 10, fixed: true },
+                { id: 'kling-v1-avatar', name: 'Kling v1 Avatar Video', baseCost: 14, maxDur: 10, fixed: true },
+                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 MC-K', baseCost: 15, maxDur: 10, fixed: true },
+                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 MC-F', baseCost: 15, maxDur: 10, fixed: true },
+                { id: 'kling-2.6', name: 'Kling 2.6 Standard', baseCost: 12, maxDur: 10, fixed: true },
+                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 8, maxDur: 10, fixed: true },
+                { id: 'kling-2.1', name: 'Kling 2.1 Standard', baseCost: 10, maxDur: 10, fixed: true },
+                { id: 'wan-3.0', name: 'Wan 3.0 High-End', baseCost: 8, maxDur: 10, fixed: true },
+                { id: 'wan-2.6', name: 'Wan 2.6 Fast', baseCost: 6, maxDur: 10, fixed: true },
+                { id: 'wan-2.5', name: 'Wan 2.5 Fast', baseCost: 5, maxDur: 10, fixed: true },
+                { id: 'seedance-2', name: 'Seedance 2.0 Pro', baseCost: 20, maxDur: 15, fixed: true },
+                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 10, maxDur: 10, fixed: true },
+                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15, fixed: true },
+                { id: 'sora-2-pro-f', name: 'Sora 2 Pro Fast', baseCost: 24, maxDur: 15, fixed: true },
+                { id: 'runway', name: 'Runway Gen3 Alpha', baseCost: 6, maxDur: 10, fixed: true },
+                { id: 'topaz', name: 'Topaz Video Upscale', baseCost: 5, maxDur: 10, fixed: true },
+                { id: 'hailuo-02', name: 'Hailuo 02 (Minimax)', baseCost: 10, maxDur: 10, fixed: true }
             ],
             audio: [
-                { id: 'suno-v5', name: 'Suno V5 Music', baseCost: 3 },
-                { id: 'elevenlabs-v3', name: 'ElevenLabs TTS v3', baseCost: 10 }
+                { id: 'suno-v5', name: 'Suno V5 Full Track', baseCost: 3 },
+                { id: 'suno-5.5', name: 'Suno 5.5 Turbo', baseCost: 4 },
+                { id: 'elevenlabs-v3', name: 'ElevenLabs TTS v3', baseCost: 10 },
+                { id: 'elevenlabs-multi', name: 'ElevenLabs Multilingual', baseCost: 8 },
+                { id: 'elevenlabs-turbo', name: 'ElevenLabs Turbo v2', baseCost: 5 },
+                { id: 'elevenlabs-dialog', name: 'ElevenLabs Multi-Dialog', baseCost: 12 },
+                { id: 'elevenlabs-speech', name: 'ElevenLabs Speech-to-Speech', baseCost: 15 }
             ],
             avatar: [
                 { id: 'multi-talk', name: 'MultiTalk Avatar Lipsync', baseCost: 15 },
@@ -467,9 +544,13 @@
 
             document.getElementById('fields-image').style.display = 'none';
             document.getElementById('fields-video').style.display = 'none';
+            document.getElementById('fields-audio').style.display = 'none';
+            document.getElementById('fields-avatar').style.display = 'none';
 
             if (cat === 'image') document.getElementById('fields-image').style.display = 'block';
             if (cat === 'video') document.getElementById('fields-video').style.display = 'block';
+            if (cat === 'audio') document.getElementById('fields-audio').style.display = 'block';
+            if (cat === 'avatar') document.getElementById('fields-avatar').style.display = 'block';
 
             const select = document.getElementById('modal-model-select');
             select.innerHTML = '';
@@ -478,6 +559,7 @@
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.dataset.baseCost = m.baseCost;
+                if (m.fixed) opt.dataset.fixed = "true";
                 if (m.maxDur) opt.dataset.maxDur = m.maxDur;
                 opt.innerText = `${m.name} — ${m.baseCost} ⚡`;
                 select.appendChild(opt);
@@ -505,12 +587,17 @@
             if (!select.options.length) return;
             const selectedOpt = select.options[select.selectedIndex];
             let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
+            let isFixed = selectedOpt.dataset.fixed === "true";
             let finalCost = baseCost;
 
-            if (activeCategory === 'video') {
+            if (activeCategory === 'video' && !isFixed) {
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 let costPerSec = baseCost / 5;
                 finalCost = Math.round(costPerSec * duration);
+            } else if (activeCategory === 'image') {
+                const res = document.getElementById('img-res').value;
+                if (res === '2k') finalCost += 1;
+                if (res === '4k') finalCost += 2;
             }
 
             document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
