@@ -3,82 +3,48 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, model, category, resolution, duration, refUrl } = req.body;
+  const { prompt, model, category, aspect_ratio, duration, resolution, image_url, audio_url } = req.body;
 
-  if (!prompt && !refUrl) {
-    return res.status(400).json({ error: 'Передайте текстовый запрос или ссылку на референс' });
+  if (!prompt && !image_url) {
+    return res.status(400).json({ error: 'Промпт или входной медиафайл обязателен' });
   }
 
-  // Карта всех поддерживаемых моделей Fal.ai
+  // Динамическая карта эндпоинтов Fal.ai
   const endpoints = {
-    // Картинки
-    'flux-schnell': 'https://fal.run/fal-ai/flux/schnell',
+    // Изображения
     'flux-pro': 'https://fal.run/fal-ai/flux-pro/v1.1',
-    'recraft-v3': 'https://fal.run/fal-ai/recraft-v3',
-    'ideogram-v2': 'https://fal.run/fal-ai/ideogram/v2',
-    
+    'flux-schnell': 'https://fal.run/fal-ai/flux/schnell',
+    'seedream-5': 'https://fal.run/fal-ai/seedream-5.0/pro',
+
     // Видео
     'kling-3.0': 'https://fal.run/fal-ai/kling-video/v3/pro/text-to-video',
     'wan-3.0': 'https://fal.run/fal-ai/wan/v3/text-to-video',
-    'seedance-2.5': 'https://fal.run/fal-ai/bytedance/seedance-2.5/image-to-video',
 
-    // 3D Модели
-    'trellis-2': 'https://fal.run/fal-ai/trellis-2',
-    'hunyuan-3d': 'https://fal.run/fal-ai/hunyuan-3d/v3.1/pro/image-to-3d',
-
-    // Аватары
-    'multi-talk': 'https://fal.run/fal-ai/ai-avatar/single-text',
+    // Аватары & Lipsync
+    'kling-avatar': 'https://fal.run/fal-ai/kling-avatar/v1',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait',
 
-    // Аудио и Чат
-    'suno-v4': 'https://fal.run/fal-ai/suno/v4',
+    // Аудио
     'elevenlabs': 'https://fal.run/fal-ai/elevenlabs/tts',
-    'gpt-4o': 'https://fal.run/fal-ai/any-llm',
-    'claude-sonnet': 'https://fal.run/fal-ai/any-llm'
+    'minimax-tts': 'https://fal.run/fal-ai/minimax/speech-02-hd',
+
+    // 3D
+    'trellis-2': 'https://fal.run/fal-ai/trellis-2'
   };
 
   const targetEndpoint = endpoints[model] || endpoints['flux-schnell'];
 
-  // Формируем payload для Fal.ai
-  let bodyData = {};
+  // Формируем уникальный payload под конкретную модель
+  let bodyData = { prompt };
 
-  if (prompt) {
-    bodyData.prompt = prompt;
+  if (aspect_ratio) bodyData.aspect_ratio = aspect_ratio;
+  if (duration) bodyData.duration = `${duration}`;
+  if (resolution) bodyData.resolution = resolution === '4k' ? '2160p' : resolution;
+  if (image_url) {
+    bodyData.image_url = image_url;
+    bodyData.source_image_url = image_url;
   }
-
-  // Передача референс-картинки, если клиент прикрепил ссылку
-  if (refUrl) {
-    bodyData.image_url = refUrl;
-    bodyData.input_image_url = refUrl;
-  }
-
-  // Специфичные настройки для видео
-  if (category === 'video') {
-    bodyData.duration = `${duration || 5}`;
-    bodyData.aspect_ratio = '16:9';
-    bodyData.generate_audio = true;
-    bodyData.enable_audio = true;
-    if (resolution) {
-      bodyData.resolution = resolution === '4k' ? '2160p' : resolution;
-    }
-    // Если передан референс для видео, переключаем на image-to-video
-    if (refUrl) {
-      bodyData.image_url = refUrl;
-    }
-  } 
-  // Специфичные настройки для аватаров
-  else if (category === 'avatar') {
-    bodyData.text = prompt;
-    if (refUrl) bodyData.image_url = refUrl;
-  } 
-  // Текстовый чат
-  else if (category === 'chat') {
-    bodyData.model = model === 'claude-sonnet' ? 'anthropic/claude-3.5-sonnet' : 'openai/gpt-4o';
-  } 
-  // Озвучка ElevenLabs
-  else if (model === 'elevenlabs') {
-    bodyData = { text: prompt };
-  }
+  if (audio_url) bodyData.audio_url = audio_url;
 
   try {
     const response = await fetch(targetEndpoint, {
@@ -93,19 +59,14 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || 'Ошибка при обработке запроса нейросетью');
+      throw new Error(data.detail || 'Ошибка при вызове Fal.ai API');
     }
 
-    // Универсальный разбор ответа (картинка, видео, аудио или текст)
-    const mediaUrl = data.images?.[0]?.url || data.video?.url || data.model_mesh?.url || data.audio_url?.url || data.audio?.url || data.url;
-    const textResult = data.output || data.text || data.choices?.[0]?.message?.content;
+    const resultUrl = data.images?.[0]?.url || data.video?.url || data.audio_url?.url || data.model_mesh?.url || data.url;
 
-    return res.status(200).json({ 
-      success: true, 
-      result: { 
-        url: mediaUrl,
-        text: textResult
-      } 
+    return res.status(200).json({
+      success: true,
+      result: { url: resultUrl }
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
