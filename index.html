@@ -2,74 +2,327 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hydra AI Studio</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #0e0e10;
+            --card-bg: #18181b;
+            --accent-color: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            --text-main: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #1c1c1e);
-            color: var(--tg-theme-text-color, #ffffff);
+            background-color: var(--bg-color);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            padding: 12px 12px 80px 12px;
+            box-sizing: border-box;
         }
-        h2 { text-align: center; margin-bottom: 5px; color: #007aff; }
-        label { font-size: 14px; opacity: 0.8; }
-        textarea, select, button {
+
+        /* Шапка профиля и баланс */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 4px 8px;
+        }
+        .brand {
+            font-size: 18px;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .balance-badge {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .balance-badge span { color: #facc15; }
+
+        /* Промо-баннер */
+        .promo-banner {
+            background: linear-gradient(135deg, #1e1b4b, #311042);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .promo-text h3 { margin: 0 0 4px 0; font-size: 15px; }
+        .promo-text p { margin: 0; font-size: 12px; color: var(--text-secondary); }
+        .promo-btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Иконки категорий */
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .cat-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 10px 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cat-item:active { transform: scale(0.95); }
+        .cat-icon { font-size: 20px; margin-bottom: 4px; }
+        .cat-name { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
+
+        /* Поиск и Секции */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        /* Форма генерации */
+        .generator-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+        textarea, select {
             width: 100%;
             padding: 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: #09090b;
             color: #fff;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
         }
-        button {
-            background: #007aff;
+        textarea:focus, select:focus { border-color: var(--accent-color); }
+        .generate-btn {
+            width: 100%;
+            background: var(--accent-gradient);
             color: #fff;
-            font-weight: bold;
+            font-weight: 700;
             border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
             cursor: pointer;
-            margin-top: 10px;
         }
-        button:active { opacity: 0.8; }
+        .generate-btn:active { opacity: 0.85; }
+
+        /* Трендовые карточки */
+        .trends-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .trend-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .trend-img {
+            width: 100%;
+            height: 120px;
+            background: #27272a;
+            object-fit: cover;
+        }
+        .trend-info {
+            padding: 10px;
+        }
+        .trend-title { font-size: 12px; font-weight: 600; margin: 0; }
+
+        /* Нижнее меню (Bottom Bar) */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(14, 14, 16, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+        .nav-item {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 10px;
+            cursor: pointer;
+            flex: 1;
+        }
+        .nav-item.active { color: var(--accent-color); font-weight: 600; }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
     </style>
 </head>
 <body>
-    <h2>Hydra AI Studio ⚡</h2>
-    
-    <label for="prompt">Промпт для генерации видео:</label>
-    <textarea id="prompt" rows="4" placeholder="Fast paced artistic showcase, fashion model..."></textarea>
-    
-    <label for="resolution">Качество видео:</label>
-    <select id="resolution">
-        <option value="720p">720p (Быстро / Экономно)</option>
-        <option value="1080p">1080p (Максимальное с аудио)</option>
-    </select>
 
-    <button onclick="generateVideo()">🚀 Сгенерировать видео</button>
+    <!-- Шапка -->
+    <div class="header">
+        <div class="brand">HYDRA AI ⚡</div>
+        <div class="balance-badge" onclick="topUpBalance()">
+            ⚙ <span id="coins">150</span>
+        </div>
+    </div>
+
+    <!-- Промо блок -->
+    <div class="promo-banner">
+        <div class="promo-text">
+            <h3>Seedance 2.5 Pro</h3>
+            <p>Создавай кинематографичные ролики</p>
+        </div>
+        <button class="promo-btn" onclick="setPrompt('Cinematic hyper-realistic shot, dramatic lighting')">Попробовать</button>
+    </div>
+
+    <!-- Категории -->
+    <div class="categories">
+        <div class="cat-item" onclick="selectCategory('image')">
+            <div class="cat-icon">🖼</div>
+            <div class="cat-name">Картинка</div>
+        </div>
+        <div class="cat-item" onclick="selectCategory('video')" style="border-color: var(--accent-color);">
+            <div class="cat-icon">🎥</div>
+            <div class="cat-name">Видео</div>
+        </div>
+        <div class="cat-item" onclick="selectCategory('audio')">
+            <div class="cat-icon">🎵</div>
+            <div class="cat-name">Аудио</div>
+        </div>
+        <div class="cat-item" onclick="selectCategory('face')">
+            <div class="cat-icon">🎭</div>
+            <div class="cat-name">Face Swap</div>
+        </div>
+        <div class="cat-item" onclick="selectCategory('chat')">
+            <div class="cat-icon">💬</div>
+            <div class="cat-name">Чат AI</div>
+        </div>
+    </div>
+
+    <!-- Панель генерации -->
+    <div class="generator-box">
+        <div class="section-title" id="gen-title">🎥 Генерация видео (Seedance)</div>
+        
+        <label for="prompt">Промпт / Описание сюжета:</label>
+        <textarea id="prompt" rows="3" placeholder="Опишите, что должно происходить в кадре..."></textarea>
+        
+        <label for="resolution">Разрешение и качество:</label>
+        <select id="resolution">
+            <option value="720p">720p с аудио (Экономно)</option>
+            <option value="1080p">1080p Full HD с аудио (Максимальное)</option>
+        </select>
+
+        <button class="generate-btn" onclick="generate()">🚀 Сгенерировать (-120 монет)</button>
+    </div>
+
+    <!-- Тренды -->
+    <div class="section-title">🔥 Популярные тренды</div>
+    <div class="trends-grid">
+        <div class="trend-card" onclick="setPrompt('Cyberpunk fashion runway model, futuristic clothes, neon lights')">
+            <div class="trend-img" style="background: linear-gradient(45deg, #3b82f6, #8b5cf6);"></div>
+            <div class="trend-info">
+                <p class="trend-title">Киберпанк подиум</p>
+            </div>
+        </div>
+        <div class="trend-card" onclick="setPrompt('Cinematic drone shot flying over misty dark mountains at sunrise')">
+            <div class="trend-img" style="background: linear-gradient(45deg, #10b981, #3b82f6);"></div>
+            <div class="trend-info">
+                <p class="trend-title">Горы на рассвете</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижнее меню навигации -->
+    <div class="nav-bar">
+        <div class="nav-item active">
+            <div class="nav-icon">🏠</div>
+            Главная
+        </div>
+        <div class="nav-item" onclick="alert('Раздел идей скоро появится!')">
+            <div class="nav-icon">💡</div>
+            Идеи
+        </div>
+        <div class="nav-item" onclick="alert('История генераций пуста')">
+            <div class="nav-icon">📂</div>
+            История
+        </div>
+        <div class="nav-item" onclick="alert('Баланс: 150 монет. Пополнение скоро.')">
+            <div class="nav-icon">👤</div>
+            Профиль
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        function generateVideo() {
+        function setPrompt(text) {
+            document.getElementById('prompt').value = text;
+            window.scrollTo({ top: 250, behavior: 'smooth' });
+        }
+
+        function selectCategory(cat) {
+            const titleMap = {
+                'image': '🖼 Генерация изображений (FLUX)',
+                'video': '🎥 Генерация видео (Seedance 2.5)',
+                'audio': '🎵 Генерация музыки и звуков',
+                'face': '🎭 Замена лица в видео (Remake)',
+                'chat': '💬 Умный ассистент ChatGPT'
+            };
+            document.getElementById('gen-title').innerText = titleMap[cat] || 'Генерация';
+        }
+
+        function topUpBalance() {
+            alert("Интерфейс пополнения через Telegram Stars будет доступен в следующем обновлении!");
+        }
+
+        function generate() {
             const prompt = document.getElementById('prompt').value;
-            const res = document.getElementById('resolution').value;
+            const resolution = document.getElementById('resolution').value;
 
             if (!prompt) {
-                alert("Пожалуйста, введите промпт!");
+                alert("Пожалуйста, введите текстовый промпт!");
                 return;
             }
 
+            // Отправляем данные боту
             tg.sendData(JSON.stringify({
-                action: "generate_video",
+                action: "generate",
                 prompt: prompt,
-                resolution: res
+                resolution: resolution
             }));
             
             tg.close();
