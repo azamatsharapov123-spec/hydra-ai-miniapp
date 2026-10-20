@@ -56,7 +56,9 @@ export default async function handler(req, res) {
     }
   }
 
+  // Полный маппинг всех нейросетей на стабильные эндпоинты Fal.ai
   const endpoints = {
+    // Картинки
     'nanobanana-pro': 'https://fal.run/fal-ai/flux/schnell',
     'nanobanana-2.1': 'https://fal.run/fal-ai/flux/dev',
     'nanobanana-1': 'https://fal.run/fal-ai/flux/schnell',
@@ -73,6 +75,7 @@ export default async function handler(req, res) {
     'gpt-image-1.5': 'https://fal.run/fal-ai/flux/schnell',
     'gpt-image-2': 'https://fal.run/fal-ai/flux/dev',
 
+    // Видео (25+ моделей)
     'seedance-2.5': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
     'gemini-omni': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
     'gemini-omni-1.1': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
@@ -101,6 +104,7 @@ export default async function handler(req, res) {
     'topaz': 'https://fal.run/fal-ai/topaz-video-upscale',
     'hailuo-02': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
 
+    // Аудио
     'suno-v5': 'https://fal.run/fal-ai/suno-music',
     'suno-5.5': 'https://fal.run/fal-ai/suno-music',
     'elevenlabs-v3': 'https://fal.run/fal-ai/elevenlabs/tts',
@@ -109,13 +113,13 @@ export default async function handler(req, res) {
     'elevenlabs-dialog': 'https://fal.run/fal-ai/elevenlabs/tts',
     'elevenlabs-speech': 'https://fal.run/fal-ai/elevenlabs/tts',
 
+    // Аватары
     'multi-talk': 'https://fal.run/fal-ai/live-portrait',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait'
   };
 
   const targetEndpoint = endpoints[model] || 'https://fal.run/fal-ai/flux/schnell';
 
-  // Формируем чистый Payload под требования API
   const payload = { prompt };
   if (aspect_ratio) payload.image_size = aspect_ratio === '16:9' ? 'landscape_16_9' : (aspect_ratio === '9:16' ? 'portrait_16_9' : 'square');
   if (image_url) payload.image_url = image_url;
