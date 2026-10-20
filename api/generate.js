@@ -3,24 +3,46 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, model, category } = req.body;
+  const { prompt, model, category, resolution, duration } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: 'Промпт не передан' });
   }
 
-  // Карта эндпоинтов Fal.ai под каждую модель
+  // Карта эндпоинтов Fal.ai
   const endpoints = {
+    // Картинки
     'flux-schnell': 'https://fal.run/fal-ai/flux/schnell',
     'flux-pro': 'https://fal.run/fal-ai/flux-pro/v1.1',
     'recraft-v3': 'https://fal.run/fal-ai/recraft-v3',
     'ideogram-v2': 'https://fal.run/fal-ai/ideogram/v2',
+    
+    // Видео
     'seedance-2.5': 'https://fal.run/fal-ai/bytedance/seedance-2.5/image-to-video',
     'kling-1.5': 'https://fal.run/fal-ai/kling-video/v1.5/standard/text-to-video',
-    'wan-2.1': 'https://fal.run/fal-ai/wan/v2.1/text-to-video'
+    'wan-2.1': 'https://fal.run/fal-ai/wan/v2.1/text-to-video',
+
+    // Аудио & Чат
+    'suno-v4': 'https://fal.run/fal-ai/suno/v4',
+    'elevenlabs': 'https://fal.run/fal-ai/elevenlabs/tts',
+    'gpt-4o': 'https://fal.run/fal-ai/any-llm',
+    'claude-sonnet': 'https://fal.run/fal-ai/any-llm'
   };
 
   const targetEndpoint = endpoints[model] || endpoints['flux-schnell'];
+
+  // Формируем уникальный body под конкретную модель
+  let bodyData = { prompt };
+
+  if (category === 'video') {
+    bodyData.resolution = resolution === '1080p' ? '1080p' : '720p';
+    bodyData.seconds_total = parseInt(duration) || 5;
+    bodyData.enable_audio = true;
+  } else if (model === 'gpt-4o' || model === 'claude-sonnet') {
+    bodyData.model = model === 'claude-sonnet' ? 'anthropic/claude-3.5-sonnet' : 'openai/gpt-4o';
+  } else if (model === 'elevenlabs') {
+    bodyData = { text: prompt };
+  }
 
   try {
     const response = await fetch(targetEndpoint, {
@@ -29,24 +51,25 @@ export default async function handler(req, res) {
         'Authorization': `Key ${process.env.FAL_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        prompt: prompt,
-        enable_audio: true
-      })
+      body: JSON.stringify(bodyData)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || 'Ошибка при генерации в нейросети');
+      throw new Error(data.detail || 'Ошибка при обработке запроса нейросетью');
     }
 
-    // Универсальное извлечение URL медиа-файла
-    const mediaUrl = data.images?.[0]?.url || data.video?.url || data.video_url || data.url;
+    // Извлекаем результат в зависимости от типа
+    const mediaUrl = data.images?.[0]?.url || data.video?.url || data.audio_url?.url || data.audio?.url || data.url;
+    const textResult = data.output || data.text || data.choices?.[0]?.message?.content;
 
     return res.status(200).json({ 
       success: true, 
-      result: { url: mediaUrl } 
+      result: { 
+        url: mediaUrl,
+        text: textResult
+      } 
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
