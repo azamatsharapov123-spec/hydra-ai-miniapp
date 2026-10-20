@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hydra AI Studio Pro</title>
+    <title>Hydra AI Studio</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: var(--tg-theme-bg-color, #0e0e10);
-            --card-bg: var(--tg-theme-secondary-bg-color, #18181b);
-            --text-color: var(--tg-theme-text-color, #ffffff);
-            --hint-color: var(--tg-theme-hint-color, #9ca3af);
+            --bg-color: #0e0e10;
+            --card-bg: #18181b;
             --accent-color: #8b5cf6;
             --accent-gradient: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            --text-main: #ffffff;
+            --text-secondary: #9ca3af;
             --border-color: rgba(255, 255, 255, 0.08);
             --success-color: #22c55e;
         }
@@ -20,11 +20,10 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
+            color: var(--text-main);
             margin: 0;
-            padding: 12px 12px 90px 12px;
+            padding: 12px 12px 85px 12px;
             box-sizing: border-box;
-            user-select: none;
         }
 
         .header {
@@ -32,7 +31,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
-            padding: 4px;
+            padding: 4px 8px;
         }
         .brand {
             font-size: 18px;
@@ -41,59 +40,44 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        .balance-badge-sticky {
-            position: sticky;
-            top: 0;
-            z-index: 90;
-            background: rgba(24, 24, 27, 0.9);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--accent-color);
-            padding: 12px 16px;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.15);
-        }
-        .balance-title { font-size: 12px; color: var(--hint-color); }
-        .balance-val { font-size: 18px; font-weight: 800; color: #facc15; }
-
-        .app-page { display: none; }
-        .app-page.active-page { display: block; animation: fadeIn 0.25s ease-in-out; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .tabs-header {
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-            scrollbar-width: none;
-        }
-        .tabs-header::-webkit-scrollbar { display: none; }
-        .tab-btn {
+        .balance-badge {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            color: var(--hint-color);
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .balance-badge span { color: #facc15; }
+
+        .app-page { display: none; }
+        .app-page.active-page { display: block; }
+
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .cat-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 4px;
+            text-align: center;
             cursor: pointer;
             transition: 0.2s;
         }
-        .tab-btn.active {
+        .cat-item.active {
             border-color: var(--accent-color);
-            background: rgba(139, 92, 246, 0.15);
-            color: var(--text-color);
+            background: rgba(139, 92, 246, 0.1);
         }
+        .cat-icon { font-size: 18px; margin-bottom: 2px; }
+        .cat-name { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
 
         .generator-box {
             background: var(--card-bg);
@@ -102,48 +86,75 @@
             padding: 16px;
             margin-bottom: 20px;
         }
+        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+        
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .magic-btn {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--accent-color);
+            color: #d8b4fe;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
 
-        label { font-size: 12px; color: var(--hint-color); display: block; margin-bottom: 6px; font-weight: 600; }
-        input, select, textarea {
+        label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+        textarea, select, input[type="text"] {
             width: 100%;
             padding: 12px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
-            background: rgba(0, 0, 0, 0.3);
-            color: var(--text-color);
+            background: #09090b;
+            color: #fff;
             box-sizing: border-box;
             font-size: 14px;
             margin-bottom: 14px;
             outline: none;
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--accent-color); }
 
-        .model-dynamic-params {
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--border-color);
+        /* Поле загрузки файла с устройства */
+        .file-upload-box {
+            background: #09090b;
+            border: 1px dashed var(--accent-color);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            margin-bottom: 14px;
+            cursor: pointer;
+        }
+        .file-upload-box input[type="file"] {
+            display: none;
+        }
+        .file-upload-label {
+            font-size: 13px;
+            color: var(--accent-color);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .extra-params {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 14px;
+            background: #09090b;
             padding: 12px;
             border-radius: 12px;
-            margin-bottom: 14px;
+            border: 1px solid var(--border-color);
         }
 
-        .prompt-wrap {
-            position: relative;
-        }
-        .magic-btn {
-            position: absolute;
-            right: 8px;
-            top: 8px;
-            background: var(--accent-gradient);
-            border: none;
-            color: #fff;
-            font-size: 11px;
-            padding: 6px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-        }
+        .slider-container { display: flex; align-items: center; gap: 12px; }
+        input[type=range] { flex: 1; accent-color: var(--accent-color); }
+        .duration-val { font-weight: 700; font-size: 14px; color: var(--accent-color); min-width: 55px; text-align: right; }
 
-        .btn-primary {
+        .generate-btn {
             width: 100%;
             background: var(--accent-gradient);
             color: #fff;
@@ -153,266 +164,226 @@
             border-radius: 12px;
             font-size: 15px;
             cursor: pointer;
-            transition: 0.2s;
         }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .generate-btn:disabled { opacity: 0.5; }
 
-        /* Идеи / Промты */
-        .ideas-grid {
-            display: grid;
-            grid-template-columns: repeat(1, 1fr);
-            gap: 12px;
-        }
-        .idea-card {
+        .result-box {
+            display: none;
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            padding: 14px;
-        }
-        .idea-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-        .idea-desc { font-size: 12px; color: var(--hint-color); margin-bottom: 10px; }
-
-        /* История */
-        .history-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        .history-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 8px;
+            border: 1px solid var(--accent-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
             text-align: center;
         }
-        .history-card media, .history-card img, .history-card video {
+        .result-box img, .result-box video, .result-box audio {
             width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-        .history-actions {
-            display: flex;
-            gap: 4px;
-            margin-top: 6px;
-        }
-        .btn-mini {
-            flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 6px;
-            border-radius: 6px;
-            font-size: 10px;
-            cursor: pointer;
+            border-radius: 12px;
+            margin-top: 10px;
         }
 
-        /* Профиль */
-        .profile-block {
+        /* Чат с ИИ */
+        .chat-box {
+            display: flex;
+            flex-direction: column;
+            height: 380px;
+            background: #09090b;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .chat-msg {
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            max-width: 85%;
+        }
+        .chat-msg.user { background: var(--accent-color); color: #fff; align-self: flex-end; }
+        .chat-msg.ai { background: var(--card-bg); border: 1px solid var(--border-color); color: #fff; align-self: flex-start; }
+
+        /* Профиль и Навигация */
+        .profile-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 16px;
         }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-        .user-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: var(--accent-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            font-weight: 700;
-        }
 
-        .lang-picker {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-        .lang-btn {
-            flex: 1;
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.2);
-            color: var(--hint-color);
-            cursor: pointer;
-            font-size: 12px;
-            text-align: center;
-        }
-        .lang-btn.active { border-color: var(--accent-color); color: var(--text-color); font-weight: 700; }
-
-        .ref-box {
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px dashed var(--accent-color);
-            padding: 12px;
-            border-radius: 12px;
-            margin-top: 10px;
-        }
-
-        /* Навигационная панель */
         .nav-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
             background: rgba(14, 14, 16, 0.95);
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(10px);
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
-            padding: 10px 0;
+            padding: 8px 0;
             z-index: 100;
         }
         .nav-item {
             text-align: center;
-            color: var(--hint-color);
-            font-size: 10px;
+            color: var(--text-secondary);
+            font-size: 9px;
             cursor: pointer;
             flex: 1;
         }
-        .nav-item.active { color: var(--accent-color); font-weight: 700; }
-        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        .nav-item.active { color: var(--accent-color); font-weight: 600; }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="brand">HYDRA AI STUDIO PRO ⚡</div>
+        <div class="brand">HYDRA AI ⚡</div>
+        <div class="balance-badge" onclick="topUpBalance()">
+            ⚙ <span id="coins">150</span> монет
+        </div>
     </div>
 
-    <!-- 1. РАЗДЕЛ: ГЛАВНАЯ (Home) -->
+    <!-- 1. ГЛАВНАЯ СТРАНИЦА -->
     <div id="page-home" class="app-page active-page">
-        <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchCategory('image', this)">🖼 Картинки</button>
-            <button class="tab-btn" onclick="switchCategory('video', this)">🎥 Видео</button>
-            <button class="tab-btn" onclick="switchCategory('avatar', this)">👤 Аватары</button>
-            <button class="tab-btn" onclick="switchCategory('audio', this)">🎵 Аудио</button>
-            <button class="tab-btn" onclick="switchCategory('threed', this)">🧊 3D</button>
+        <div class="categories">
+            <div class="cat-item active" id="cat-image" onclick="selectCategory('image')">
+                <div class="cat-icon">🖼</div>
+                <div class="cat-name">Картинка</div>
+            </div>
+            <div class="cat-item" id="cat-video" onclick="selectCategory('video')">
+                <div class="cat-icon">🎥</div>
+                <div class="cat-name">Видео</div>
+            </div>
+            <div class="cat-item" id="cat-threed" onclick="selectCategory('threed')">
+                <div class="cat-icon">🧊</div>
+                <div class="cat-name">3D Модели</div>
+            </div>
+            <div class="cat-item" id="cat-avatar" onclick="selectCategory('avatar')">
+                <div class="cat-icon">👤</div>
+                <div class="cat-name">Аватары</div>
+            </div>
+            <div class="cat-item" id="cat-audio" onclick="selectCategory('audio')">
+                <div class="cat-icon">🎵</div>
+                <div class="cat-name">Аудио</div>
+            </div>
         </div>
 
         <div class="generator-box">
-            <label id="lbl-model">Выберите нейросеть Fal.ai:</label>
-            <select id="model-select" onchange="renderDynamicForm()"></select>
+            <div class="section-title" id="gen-title">🖼 Генерация изображений</div>
+            
+            <label for="model-select">Выберите нейросеть:</label>
+            <select id="model-select" onchange="onModelChange()"></select>
 
-            <!-- ДИНАМИЧЕСКИЕ НАСТРОЙКИ МОДЕЛИ -->
-            <div id="dynamic-form" class="model-dynamic-params"></div>
-
-            <div class="prompt-wrap">
-                <label id="lbl-prompt">Ваш запрос (Промт):</label>
-                <button class="magic-btn" onclick="enhancePrompt()">✨ AI Промт</button>
-                <textarea id="prompt-input" rows="3" placeholder="Опишите желаемый результат..."></textarea>
-            </div>
-
-            <button class="btn-primary" id="btn-generate" onclick="runGeneration()">🚀 Сгенерировать</button>
-        </div>
-
-        <div id="result-box" class="generator-box" style="display:none; text-align:center;">
-            <label>✨ Результат:</label>
-            <div id="result-media"></div>
-        </div>
-    </div>
-
-    <!-- 2. РАЗДЕЛ: ИДЕИ (Ideas) -->
-    <div id="page-ideas" class="app-page">
-        <h3 id="txt-ideas-title">💡 Каталог идей и Готовых Шаблонов</h3>
-        <div class="ideas-grid">
-            <div class="idea-card">
-                <div class="idea-title">🎬 Кинематографичный Cyberpunk</div>
-                <div class="idea-desc">Футуристический город с неоновыми вывесками под дождем, 8k, фотореализм.</div>
-                <button class="btn-mini" onclick="usePreset('Cyberpunk city with neon lights, highly detailed 8k cinematic shot')">Использовать промт</button>
-            </div>
-            <div class="idea-card">
-                <div class="idea-title">👤 Говорящий AI Аватар</div>
-                <div class="idea-desc">Оживление портрета с синхронизацией речи для блога или презентации.</div>
-                <button class="btn-mini" onclick="usePreset('Professional news presenter speaking confidently')">Использовать промт</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. РАЗДЕЛ: ИСТОРИЯ (History) -->
-    <div id="page-history" class="app-page">
-        <h3 id="txt-history-title">📂 История ваших генераций</h3>
-        <div class="tabs-header">
-            <button class="tab-btn active" onclick="filterHistory('all', this)">Все</button>
-            <button class="tab-btn" onclick="filterHistory('image', this)">Изображения</button>
-            <button class="tab-btn" onclick="filterHistory('video', this)">Видео</button>
-            <button class="tab-btn" onclick="filterHistory('audio', this)">Аудио</button>
-            <button class="tab-btn" onclick="filterHistory('avatar', this)">Аватары</button>
-            <button class="tab-btn" onclick="filterHistory('threed', this)">3D-модели</button>
-        </div>
-        <div id="history-container" class="history-grid"></div>
-    </div>
-
-    <!-- 4. РАЗДЕЛ: ПРОФИЛЬ (Profile) -->
-    <div id="page-profile" class="app-page">
-        <!-- ВЕРХНЯЯ ЗОНА — ФИКСИРОВАННЫЙ БАЛАНС -->
-        <div class="balance-badge-sticky">
-            <div>
-                <div class="balance-title" id="lbl-balance">Текущий баланс</div>
-                <div class="balance-val"><span id="user-coins">150</span> Кредитов</div>
-            </div>
-            <button class="btn-mini" style="background:var(--accent-gradient); border:none; color:#fff; font-weight:700;" onclick="buyCredits()">+ Пополнить</button>
-        </div>
-
-        <!-- БЛОК А: Пользователь, Тарифы и Языки -->
-        <div class="profile-block">
-            <div class="user-info">
-                <div class="user-avatar" id="u-avatar">U</div>
+            <!-- Настройки видео -->
+            <div class="extra-params" id="video-params">
                 <div>
-                    <div style="font-weight: 700; font-size: 15px;" id="u-name">Telegram User</div>
-                    <div style="font-size: 11px; color: var(--hint-color);" id="u-id">ID: 00000000</div>
+                    <label for="video-res">Разрешение видео:</label>
+                    <select id="video-res" onchange="updatePrice()" style="margin-bottom:0;">
+                        <option value="480p">480p (SD)</option>
+                        <option value="720p" selected>720p (HD)</option>
+                        <option value="1080p">1080p (Full HD)</option>
+                        <option value="4k">4K (Ultra HD)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Длительность видео:</label>
+                    <div class="slider-container">
+                        <input type="range" id="video-dur" min="1" max="30" value="5" oninput="updatePrice()">
+                        <span class="duration-val" id="dur-val">5 сек</span>
+                    </div>
                 </div>
             </div>
 
-            <button class="btn-primary" style="margin-bottom:8px;" onclick="openSubscription()">⭐ Оформить подписку Pro</button>
-            <button class="btn-primary" style="background:rgba(255,255,255,0.08);" onclick="buyCredits()">💳 Купить пакет кредитов</button>
-
-            <label style="margin-top:14px;" id="lbl-lang">Язык интерфейса:</label>
-            <div class="lang-picker">
-                <div class="lang-btn active" onclick="setLanguage('ru', this)">Русский (RU)</div>
-                <div class="lang-btn" onclick="setLanguage('tj', this)">Тоҷикӣ (TJ)</div>
-                <div class="lang-btn" onclick="setLanguage('en', this)">English (EN)</div>
+            <!-- Загрузка файла (фото/видео) с устройства -->
+            <div class="file-upload-box" id="file-box" style="display:none;">
+                <label for="file-input" class="file-upload-label" id="file-lbl">📁 Загрузить исходный файл с устройства</label>
+                <input type="file" id="file-input" accept="image/*,video/*" onchange="handleFileSelect(this)">
+                <div id="file-name" style="font-size:11px; color:#9ca3af; margin-top:4px;">Файл не выбран</div>
             </div>
+
+            <div class="prompt-header">
+                <label for="prompt" id="prompt-label" style="margin-bottom:0;">Описание запроса:</label>
+                <button class="magic-btn" onclick="enhancePrompt()">✨ Улучшить ИИ</button>
+            </div>
+            <textarea id="prompt" rows="3" placeholder="Опишите желаемый результат..."></textarea>
+
+            <button class="generate-btn" id="gen-btn" onclick="generateMedia()">🚀 Сгенерировать</button>
         </div>
 
-        <!-- БЛОК B: Партнёрская программа -->
-        <div class="profile-block">
-            <h4 style="margin:0 0 10px 0;" id="txt-affiliate">🤝 Партнёрская программа</h4>
-            <label id="lbl-reflink">Ваша реферальная ссылка:</label>
-            <input type="text" id="ref-link" readonly value="https://t.me/HydraAIBot?start=ref12345">
-            <button class="btn-mini" style="width:100%; margin-bottom:12px;" onclick="copyRefLink()">📋 Скопировать ссылку</button>
-
-            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px;">
-                <span id="lbl-refcount">Приглашено друзей: <b id="ref-count">0</b></span>
-                <span id="lbl-refearn">Заработано: <b id="ref-earn">$0.00</b></span>
-            </div>
-
-            <button class="btn-primary" style="background:var(--success-color);" onclick="withdrawFunds()">💸 Вывести средства</button>
-            <div style="font-size:10px; color:var(--hint-color); margin-top:6px;" id="txt-withdraw-cond">Вывод доступен при накоплении от $10 или 100 TJS.</div>
+        <div class="result-box" id="result-box">
+            <div class="section-title">✨ Готовый результат:</div>
+            <img id="image-result" style="display:none;" />
+            <video id="video-result" controls autoplay loop style="display:none;"></video>
+            <audio id="audio-result" controls style="display:none;"></audio>
+            <div id="chat-result" style="display:none; text-align:left; font-size:14px; white-space:pre-wrap;"></div>
         </div>
     </div>
 
-    <!-- НИЖНЕЕ МЕНЮ (Bottom Navigation Bar) -->
+    <!-- 2. ИДЕИ -->
+    <div id="page-ideas" class="app-page">
+        <div class="section-title">💡 Идеи и Промпты</div>
+        <div class="profile-card">
+            <b>🎬 Кинематографичный Cyberpunk</b>
+            <p style="font-size:12px; color:var(--text-secondary);">Футуристический город под дождем с неоновыми огнями.</p>
+            <button class="generate-btn" style="padding:8px; font-size:12px;" onclick="usePrompt('Cyberpunk city, neon lights, highly detailed, 8k')">Использовать</button>
+        </div>
+    </div>
+
+    <!-- 3. ЧАТ С HYDRA AI (БЕСПЛАТНО) -->
+    <div id="page-chat" class="app-page">
+        <div class="section-title">💬 Чат с Hydra AI (Бесплатно ⚡)</div>
+        <div class="chat-box" id="chat-messages">
+            <div class="chat-msg ai">Привет! Я ИИ-помощник Hydra AI. Задайте мне любой вопрос совершенно бесплатно!</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+            <input type="text" id="chat-input" placeholder="Напишите сообщение..." style="margin-bottom:0;">
+            <button class="generate-btn" style="width:auto; padding:0 16px;" onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- 4. ИСТОРИЯ -->
+    <div id="page-history" class="app-page">
+        <div class="section-title">📂 История операций</div>
+        <div id="history-list"></div>
+    </div>
+
+    <!-- 5. ПРОФИЛЬ -->
+    <div id="page-profile" class="app-page">
+        <div class="profile-card">
+            <div class="section-title">👤 Мой Профиль</div>
+            <p>Баланс: <b style="color:#facc15;" id="prof-coins">150 монет</b></p>
+            <button class="generate-btn" onclick="topUpBalance()">💳 Пополнить баланс</button>
+        </div>
+
+        <div class="profile-card">
+            <div class="section-title">🤝 Партнёрская программа</div>
+            <p style="font-size:12px;">Приглашайте друзей и получайте сомони на баланс!</p>
+            <label>Ваша реферальная ссылка:</label>
+            <input type="text" id="ref-link" readonly value="https://t.me/HydraAIBot?start=ref123">
+            <p style="font-size:13px;">Заработано: <b style="color:var(--success-color);" id="earned-val">0 TJS (сомони)</b></p>
+            <button class="generate-btn" style="background:var(--success-color);" onclick="withdrawTJS()">💸 Вывести средства</button>
+            <p style="font-size:10px; color:var(--text-secondary); margin-top:6px;">* Вывод доступен при накоплении от 100 TJS (сомони).</p>
+        </div>
+    </div>
+
+    <!-- НИЖНЕЕ МЕНЮ НАВИГАЦИИ -->
     <div class="nav-bar">
         <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
-            <div class="nav-icon">🏠</div><span id="nav-lbl-home">Главная</span>
+            <div class="nav-icon">🏠</div>Главная
         </div>
         <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')">
-            <div class="nav-icon">💡</div><span id="nav-lbl-ideas">Идеи</span>
+            <div class="nav-icon">💡</div>Идеи
+        </div>
+        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')">
+            <div class="nav-icon">💬</div>Чат AI
         </div>
         <div class="nav-item" id="nav-history" onclick="switchPage('history')">
-            <div class="nav-icon">🕒</div><span id="nav-lbl-history">История</span>
+            <div class="nav-icon">🕒</div>История
         </div>
         <div class="nav-item" id="nav-profile" onclick="switchPage('profile')">
-            <div class="nav-icon">👤</div><span id="nav-lbl-profile">Профиль</span>
+            <div class="nav-icon">👤</div>Профиль
         </div>
     </div>
 
@@ -421,47 +392,55 @@
         tg.expand();
 
         let currentCategory = 'image';
-        let currentLang = 'ru';
-        let userCredits = 150;
-        let historyData = [];
+        let userCoins = 150;
+        let earnedTJS = 0;
+        let uploadedBase64 = null;
 
-        // База моделей с уникальными настройками
-        const modelsDatabase = {
-            image: [
-                { id: 'flux-pro', name: 'FLUX 1.1 Pro (Макс. качество)', cost: 15, fields: ['aspect_ratio', 'steps', 'guidance'] },
-                { id: 'flux-schnell', name: 'FLUX Schnell (Быстрый)', cost: 8, fields: ['aspect_ratio'] },
-                { id: 'seedream-5', name: 'ByteDance Seedream 5.0', cost: 12, fields: ['aspect_ratio', 'image_url'] }
-            ],
-            video: [
-                { id: 'kling-3.0', name: 'Kling 3.0 Pro (До 15 сек, 4K)', cost: 35, fields: ['duration', 'resolution', 'camera_motion', 'image_url'] },
-                { id: 'wan-3.0', name: 'Wan 3.0 Ultra Video', cost: 25, fields: ['duration', 'resolution', 'image_url'] }
-            ],
-            avatar: [
-                { id: 'kling-avatar', name: 'Kling AI Avatar Lipsync', cost: 40, fields: ['source_image', 'audio_input', 'lipsync_level'] },
-                { id: 'live-portrait', name: 'LivePortrait Animate', cost: 20, fields: ['source_image'] }
-            ],
-            audio: [
-                { id: 'elevenlabs', name: 'ElevenLabs Voice Synthesis', cost: 10, fields: ['voice_id', 'speed', 'emotion'] },
-                { id: 'minimax-tts', name: 'MiniMax Speech-02 HD', cost: 8, fields: ['voice_id', 'pitch'] }
-            ],
-            threed: [
-                { id: 'trellis-2', name: 'Trellis 2 (3D Mesh Generator)', cost: 45, fields: ['export_format', 'mesh_density'] }
-            ]
-        };
-
-        // Тексты для локализации (RU / TJ / EN)
-        const i18n = {
-            ru: {
-                home: 'Главная', ideas: 'Идеи', history: 'История', profile: 'Профиль',
-                balance: 'Текущий баланс', lang: 'Язык интерфейса:', affiliate: '🤝 Партнёрская программа'
+        const categoryMeta = {
+            image: {
+                title: '🖼 Генерация изображений',
+                models: [
+                    { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстро)', basePrice: 10 },
+                    { id: 'flux-pro', name: 'FLUX 1.1 Pro (Макс. качество)', basePrice: 25 },
+                    { id: 'flux-3', name: 'FLUX 3 Image (Премиум)', basePrice: 30 },
+                    { id: 'seedream-5', name: 'ByteDance Seedream 5.0', basePrice: 20 },
+                    { id: 'ideogram-4', name: 'Ideogram v4 (Текст на фото)', basePrice: 30 },
+                    { id: 'nano-banana-pro', name: 'Nano Banana Pro', basePrice: 15 }
+                ]
             },
-            tj: {
-                home: 'Асосӣ', ideas: 'Ғояҳо', history: 'Таърих', profile: 'Профил',
-                balance: 'Баланси ҷорӣ', lang: 'Забони интерфейс:', affiliate: '🤝 Барномаи шарикӣ'
+            video: {
+                title: '🎥 Генерация видео',
+                models: [
+                    { id: 'kling-3.0-pro', name: 'Kling 3.0 Pro (До 15 сек, 4K)', basePrice: 15, maxDuration: 15 },
+                    { id: 'kling-3.0-std', name: 'Kling 3.0 Standard', basePrice: 10, maxDuration: 10 },
+                    { id: 'seedance-2.5', name: 'Seedance 2.5 (С аудио)', basePrice: 10, maxDuration: 30 },
+                    { id: 'minimax-h3', name: 'MiniMax H3 Max Video', basePrice: 12, maxDuration: 10 },
+                    { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5', basePrice: 8, maxDuration: 10 },
+                    { id: 'wan-3.0', name: 'Wan 3.0 Ultra Video', basePrice: 12, maxDuration: 30 },
+                    { id: 'pixverse-v6', name: 'PixVerse V6 Video', basePrice: 8, maxDuration: 10 }
+                ]
             },
-            en: {
-                home: 'Home', ideas: 'Ideas', history: 'History', profile: 'Profile',
-                balance: 'Current Balance', lang: 'Interface Language:', affiliate: '🤝 Affiliate Program'
+            threed: {
+                title: '🧊 3D Моделирование',
+                models: [
+                    { id: 'trellis-2', name: 'Trellis 2 (3D Mesh)', basePrice: 40 },
+                    { id: 'hunyuan-3d', name: 'Hunyuan 3D Pro', basePrice: 45 }
+                ]
+            },
+            avatar: {
+                title: '👤 AI Аватары',
+                models: [
+                    { id: 'multi-talk', name: 'MultiTalk Avatar Lipsync', basePrice: 35 },
+                    { id: 'live-portrait', name: 'LivePortrait Animate', basePrice: 25 }
+                ]
+            },
+            audio: {
+                title: '🎵 Музыка и Озвучка',
+                models: [
+                    { id: 'minimax-speech', name: 'MiniMax Speech-02 HD (Голос)', basePrice: 10 },
+                    { id: 'gemini-tts', name: 'Gemini 3.1 Flash TTS', basePrice: 8 },
+                    { id: 'sonilo-music', name: 'Sonilo Text to Music', basePrice: 30 }
+                ]
             }
         };
 
@@ -473,122 +452,178 @@
             document.getElementById(`nav-${pageId}`).classList.add('active');
         }
 
-        function switchCategory(cat, btn) {
+        function selectCategory(cat) {
             currentCategory = cat;
-            document.querySelectorAll('.tabs-header .tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`cat-${cat}`).classList.add('active');
+
+            const meta = categoryMeta[cat];
+            document.getElementById('gen-title').innerText = meta.title;
+
+            document.getElementById('video-params').style.display = (cat === 'video') ? 'flex' : 'none';
+            document.getElementById('file-box').style.display = (cat === 'video' || cat === 'avatar' || cat === 'image' || cat === 'threed') ? 'block' : 'none';
 
             const select = document.getElementById('model-select');
             select.innerHTML = '';
-            modelsDatabase[cat].forEach(m => {
-                select.innerHTML += `<option value="${m.id}">${m.name} (${m.cost} кр.)</option>`;
+            meta.models.forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = model.id;
+                opt.innerText = model.name;
+                select.appendChild(opt);
             });
-            renderDynamicForm();
+
+            onModelChange();
         }
 
-        function renderDynamicForm() {
-            const modelId = document.getElementById('model-select').value;
-            const model = modelsDatabase[currentCategory].find(m => m.id === modelId);
-            const container = document.getElementById('dynamic-form');
-            container.innerHTML = '';
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('file-name').innerText = `Загружен: ${file.name}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedBase64 = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
 
-            if (!model) return;
-
-            model.fields.forEach(f => {
-                if (f === 'aspect_ratio') {
-                    container.innerHTML += `<label>Соотношение сторон:</label><select id="f-aspect"><option value="16:9">16:9 (Альбомное)</option><option value="9:16">9:16 (Stories)</option><option value="1:1">1:1 (Квадрат)</option></select>`;
-                } else if (f === 'duration') {
-                    container.innerHTML += `<label>Длительность (сек):</label><input type="range" id="f-dur" min="5" max="15" value="5" oninput="this.nextElementSibling.innerText=this.value+' сек'"><span>5 сек</span>`;
-                } else if (f === 'resolution') {
-                    container.innerHTML += `<label>Разрешение:</label><select id="f-res"><option value="720p">720p HD</option><option value="1080p">1080p Full HD</option><option value="4k">4K Ultra HD</option></select>`;
-                } else if (f === 'image_url' || f === 'source_image') {
-                    container.innerHTML += `<label>Ссылка на Исходное фото/Аватар:</label><input type="text" id="f-img" placeholder="https://example.com/image.jpg">`;
-                } else if (f === 'audio_input') {
-                    container.innerHTML += `<label>Ссылка на Аудиозапись:</label><input type="text" id="f-audio" placeholder="https://example.com/audio.mp3">`;
-                } else if (f === 'export_format') {
-                    container.innerHTML += `<label>Формат 3D экспорта:</label><select id="f-3d"><option value="glb">.GLB</option><option value="obj">.OBJ</option></select>`;
+        function onModelChange() {
+            if (currentCategory === 'video') {
+                const selectedModelId = document.getElementById('model-select').value;
+                const modelObj = categoryMeta.video.models.find(m => m.id === selectedModelId);
+                const slider = document.getElementById('video-dur');
+                if (modelObj) {
+                    slider.max = modelObj.maxDuration;
+                    if (parseInt(slider.value) > modelObj.maxDuration) slider.value = modelObj.maxDuration;
                 }
-            });
+            }
+            updatePrice();
         }
 
-        function setLanguage(lang, btn) {
-            currentLang = lang;
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        function updatePrice() {
+            const select = document.getElementById('model-select');
+            const meta = categoryMeta[currentCategory];
+            const modelObj = meta.models.find(m => m.id === select.value);
+            if (!modelObj) return;
 
-            const t = i18n[lang];
-            document.getElementById('nav-lbl-home').innerText = t.home;
-            document.getElementById('nav-lbl-ideas').innerText = t.ideas;
-            document.getElementById('nav-lbl-history').innerText = t.history;
-            document.getElementById('nav-lbl-profile').innerText = t.profile;
-            document.getElementById('lbl-balance').innerText = t.balance;
-            document.getElementById('lbl-lang').innerText = t.lang;
-            document.getElementById('txt-affiliate').innerText = t.affiliate;
+            let price = modelObj.basePrice;
+            if (currentCategory === 'video') {
+                const dur = parseInt(document.getElementById('video-dur').value) || 5;
+                const res = document.getElementById('video-res').value;
+                let mult = 1;
+                if (res === '480p') mult = 0.7;
+                if (res === '1080p') mult = 1.5;
+                if (res === '4k') mult = 2.2;
+                price = Math.round(modelObj.basePrice * dur * mult);
+            }
+            document.getElementById('dur-val').innerText = `${document.getElementById('video-dur').value} сек`;
+            document.getElementById('gen-btn').innerText = `🚀 Сгенерировать (-${price} монет)`;
         }
 
-        async function runGeneration() {
-            const prompt = document.getElementById('prompt-input').value;
-            const modelId = document.getElementById('model-select').value;
-            if (!prompt) { alert('Введите текстовый запрос!'); return; }
+        function enhancePrompt() {
+            const p = document.getElementById('prompt');
+            p.value = `Masterpiece, ultra detailed 8k, cinematic lighting: ${p.value}`;
+        }
 
-            const btn = document.getElementById('btn-generate');
-            btn.disabled = true;
-            btn.innerText = '⏳ Генерация нейросетью...';
+        function usePrompt(text) {
+            switchPage('home');
+            document.getElementById('prompt').value = text;
+        }
+
+        function withdrawTJS() {
+            if (earnedTJS < 100) {
+                alert("Минимальная сумма для вывода: 100 TJS (сомони).");
+            } else {
+                alert("Заявка на вывод отправлена администратору!");
+            }
+        }
+
+        function topUpBalance() {
+            userCoins += 100;
+            document.getElementById('coins').innerText = userCoins;
+            document.getElementById('prof-coins').innerText = `${userCoins} монет`;
+            alert("Баланс пополнен на 100 монет!");
+        }
+
+        // ЧАТ С HYDRA AI (БЕСПЛАТНО)
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const txt = input.value.trim();
+            if (!txt) return;
+
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="chat-msg user">${txt}</div>`;
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
 
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, model: modelId, category: currentCategory })
+                    body: JSON.stringify({ prompt: txt, category: 'chat', model: 'free-chat' })
                 });
                 const data = await res.json();
-
-                if (res.ok && data.success) {
-                    document.getElementById('result-box').style.display = 'block';
-                    document.getElementById('result-media').innerHTML = `<img src="${data.result.url}" style="width:100%; border-radius:12px;">`;
-                    
-                    historyData.unshift({ cat: currentCategory, url: data.result.url, prompt });
-                    renderHistoryList();
-                } else {
-                    alert('Ошибка: ' + data.error);
-                }
+                const aiReply = data.result.text || "Извините, не удалось ответить.";
+                box.innerHTML += `<div class="chat-msg ai">${aiReply}</div>`;
+                box.scrollTop = box.scrollHeight;
             } catch (err) {
-                alert('Ошибка соединения с сервером');
+                box.innerHTML += `<div class="chat-msg ai">Ошибка сети.</div>`;
+            }
+        }
+
+        async function generateMedia() {
+            const prompt = document.getElementById('prompt').value;
+            const model = document.getElementById('model-select').value;
+            if (!prompt && !uploadedBase64) { alert("Введите запрос или загрузите файл!"); return; }
+
+            const btn = document.getElementById('gen-btn');
+            btn.disabled = true;
+
+            const resolution = document.getElementById('video-res').value;
+            const duration = document.getElementById('video-dur').value;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, model, category: currentCategory, resolution, duration, fileData: uploadedBase64 })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const resBox = document.getElementById('result-box');
+                    const imgElem = document.getElementById('image-result');
+                    const videoElem = document.getElementById('video-result');
+                    const audioElem = document.getElementById('audio-result');
+
+                    imgElem.style.display = 'none';
+                    videoElem.style.display = 'none';
+                    audioElem.style.display = 'none';
+
+                    if (currentCategory === 'video' || currentCategory === 'avatar') {
+                        videoElem.src = data.result.url;
+                        videoElem.style.display = 'block';
+                    } else if (currentCategory === 'audio') {
+                        audioElem.src = data.result.url;
+                        audioElem.style.display = 'block';
+                    } else {
+                        imgElem.src = data.result.url;
+                        imgElem.style.display = 'block';
+                    }
+                    resBox.style.display = 'block';
+                } else {
+                    alert("Ошибка: " + data.error);
+                }
+            } catch (e) {
+                alert("Ошибка обработки");
             } finally {
                 btn.disabled = false;
-                btn.innerText = '🚀 Сгенерировать';
             }
         }
 
-        function renderHistoryList() {
-            const container = document.getElementById('history-container');
-            container.innerHTML = historyData.map(item => `
-                <div class="history-card">
-                    <img src="${item.url}">
-                    <div class="history-actions">
-                        <button class="btn-mini" onclick="navigator.clipboard.writeText('${item.prompt}')">Копировать промт</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function enhancePrompt() {
-            const input = document.getElementById('prompt-input');
-            input.value = 'Cinematic masterwork, highly detailed 8k, realistic lighting: ' + input.value;
-        }
-
-        // Инициализация данных пользователя из Telegram WebApp
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const u = tg.initDataUnsafe.user;
-            document.getElementById('u-name').innerText = u.first_name + (u.username ? ` (@${u.username})` : '');
-            document.getElementById('u-id').innerText = `ID: ${u.id}`;
-            document.getElementById('ref-link').value = `https://t.me/HydraAIBot?start=ref${u.id}`;
-            if (u.photo_url) {
-                document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
-            }
-        }
-
-        switchCategory('image', document.querySelector('.tabs-header .tab-btn'));
+        selectCategory('image');
     </script>
 </body>
 </html>
