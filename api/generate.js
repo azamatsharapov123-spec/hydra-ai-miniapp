@@ -21,16 +21,16 @@ export default async function handler(req, res) {
       });
 
       const data = await response.json();
-      const text = data.output || data.choices?.[0]?.message?.content || "Здравствуйте! Какую задачу решить?";
+      const text = data.output || data.choices?.[0]?.message?.content || "Здравствуйте! Чем я могу помочь?";
       return res.status(200).json({ success: true, result: { text } });
     } catch (e) {
-      return res.status(500).json({ error: "Ошибка бесплатного чата" });
+      return res.status(500).json({ error: "Ошибка чата" });
     }
   }
 
-  // Маршруты ко всем нейросетям Fal.ai
+  // Полная карта эндпоинтов всех нейросетей Fal.ai
   const endpoints = {
-    // Картинки
+    // Картинки (отсортированы по популярности)
     'nano-banana-pro': 'https://fal.run/fal-ai/nano-banana-pro',
     'flux-pro': 'https://fal.run/fal-ai/flux-pro/v1.1',
     'flux-3': 'https://fal.run/fal-ai/flux-3',
@@ -47,21 +47,19 @@ export default async function handler(req, res) {
     'minimax-h3': 'https://fal.run/fal-ai/minimax/h3-max',
     'grok-video-1.5': 'https://fal.run/fal-ai/grok-imagine-video/v1.5',
     'wan-3.0': 'https://fal.run/fal-ai/wan/v3/text-to-video',
-    'luma-v2': 'https://fal.run/fal-ai/luma-dream-machine/v2',
     'pixverse-v6': 'https://fal.run/fal-ai/pixverse/v6',
 
-    // Аватары, Аудио, 3D
+    // Аватары
     'multi-talk': 'https://fal.run/fal-ai/ai-avatar/single-text',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait',
     'sadtalker': 'https://fal.run/fal-ai/sadtalker',
+
+    // Аудио и Музыка
     'suno-v4': 'https://fal.run/fal-ai/suno/v4',
     'sonilo-music': 'https://fal.run/fal-ai/sonilo/v1.1/text-to-music',
     'minimax-speech': 'https://fal.run/fal-ai/minimax/speech-02-hd',
     'elevenlabs': 'https://fal.run/fal-ai/elevenlabs/tts',
-    'gemini-tts': 'https://fal.run/fal-ai/gemini-3.1-flash-tts',
-    'hunyuan-3d': 'https://fal.run/fal-ai/hunyuan-3d/v3.1/pro/image-to-3d',
-    'trellis-2': 'https://fal.run/fal-ai/trellis-2',
-    'tripo-3.1': 'https://fal.run/tripo3d/h3.1/text-to-3d'
+    'gemini-tts': 'https://fal.run/fal-ai/gemini-3.1-flash-tts'
   };
 
   const targetEndpoint = endpoints[model] || endpoints['nano-banana-pro'];
@@ -77,9 +75,17 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || 'Ошибка при вызове Fal.ai API');
+    }
+
     const mediaUrl = data.images?.[0]?.url || data.video?.url || data.audio_url?.url || data.model_mesh?.url || data.url;
 
-    return res.status(200).json({ success: true, result: { url: mediaUrl } });
+    return res.status(200).json({
+      success: true,
+      result: { url: mediaUrl }
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
