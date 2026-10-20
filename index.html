@@ -15,6 +15,7 @@
             --text-secondary: #9ca3af;
             --border-color: rgba(255, 255, 255, 0.08);
             --success-color: #22c55e;
+            --danger-color: #ef4444;
         }
 
         body {
@@ -433,7 +434,7 @@
         </div>
     </div>
 
-    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ -->
+    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ (С ДИНАМИЧЕСКИМИ ПОЛЯМИ) -->
     <div class="modal-overlay" id="gen-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -442,7 +443,7 @@
             </div>
 
             <label>Модель нейросети:</label>
-            <select id="modal-model-select" onchange="recalculateCost()"></select>
+            <select id="modal-model-select" onchange="onModelSelectChange()"></select>
 
             <!-- ПОЛЯ ДЛЯ КАРТИНОК -->
             <div id="fields-image" style="display:none;">
@@ -469,24 +470,30 @@
                 </select>
             </div>
 
-            <!-- ПОЛЯ ДЛЯ ВИДЕО -->
+            <!-- ПОЛЯ ДЛЯ ВИДЕО (ДИНАМИЧЕСКИ НАСТРАИВАЕМЫЕ ПОД МОДЕЛЬ) -->
             <div id="fields-video" style="display:none;">
-                <label>Начальный кадр (обязательно):</label>
-                <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
-                    <span id="lbl-vid-start" style="font-size:12px; color:var(--accent-color);">📁 Загрузить начальный кадр</span>
-                    <input type="file" id="vid-start-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-start').innerText=this.files[0].name">
+                <div id="group-start-img">
+                    <label>Начальный кадр (обязательно):</label>
+                    <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
+                        <span id="lbl-vid-start" style="font-size:12px; color:var(--accent-color);">📁 Загрузить начальный кадр</span>
+                        <input type="file" id="vid-start-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-start').innerText=this.files[0].name">
+                    </div>
                 </div>
 
-                <label>Конечный кадр (опционально):</label>
-                <div class="upload-box" onclick="document.getElementById('vid-end-file').click()">
-                    <span id="lbl-vid-end" style="font-size:12px; color:var(--accent-color);">📁 Загрузить конечный кадр</span>
-                    <input type="file" id="vid-end-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-end').innerText=this.files[0].name">
+                <div id="group-end-img">
+                    <label>Конечный кадр (опционально):</label>
+                    <div class="upload-box" onclick="document.getElementById('vid-end-file').click()">
+                        <span id="lbl-vid-end" style="font-size:12px; color:var(--accent-color);">📁 Загрузить конечный кадр</span>
+                        <input type="file" id="vid-end-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-end').innerText=this.files[0].name">
+                    </div>
                 </div>
 
-                <label>Референсные видео (по образцу):</label>
-                <div class="upload-box" onclick="document.getElementById('vid-ref-file').click()">
-                    <span id="lbl-vid-ref" style="font-size:12px; color:var(--accent-color);">📁 Добавить видео-образец</span>
-                    <input type="file" id="vid-ref-file" class="file-hidden" accept="video/*" onchange="document.getElementById('lbl-vid-ref').innerText=this.files[0].name">
+                <div id="group-vid-ref">
+                    <label>Референсные видео (по образцу):</label>
+                    <div class="upload-box" onclick="document.getElementById('vid-ref-file').click()">
+                        <span id="lbl-vid-ref" style="font-size:12px; color:var(--accent-color);">📁 Добавить видео-образец</span>
+                        <input type="file" id="vid-ref-file" class="file-hidden" accept="video/*" onchange="document.getElementById('lbl-vid-ref').innerText=this.files[0].name">
+                    </div>
                 </div>
 
                 <label>Соотношение сторон:</label>
@@ -500,21 +507,25 @@
                     <option value="21:9">21:9</option>
                 </select>
 
-                <label>Качество:</label>
-                <select id="vid-quality" onchange="recalculateCost()">
-                    <option value="480p">480p</option>
-                    <option value="720p" selected>720p HD</option>
-                    <option value="1080p">1080p Full HD</option>
-                    <option value="4k">4K Ultra HD</option>
-                </select>
-
-                <label>Длительность (сек):</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
-                    <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
+                <div id="group-quality">
+                    <label>Качество:</label>
+                    <select id="vid-quality" onchange="recalculateCost()">
+                        <option value="480p">480p</option>
+                        <option value="720p" selected>720p HD</option>
+                        <option value="1080p">1080p Full HD</option>
+                        <option value="4k">4K Ultra HD</option>
+                    </select>
                 </div>
 
-                <div class="toggle-row">
+                <div id="group-duration">
+                    <label>Длительность (сек):</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
+                        <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
+                    </div>
+                </div>
+
+                <div class="toggle-row" id="group-sound">
                     <span style="font-size:12px; font-weight:600;">Звук (Аудиодорожка)</span>
                     <label class="switch">
                         <input type="checkbox" id="vid-sound" checked>
@@ -555,10 +566,10 @@
 
             <!-- ПОЛЯ ДЛЯ АВАТАРОВ -->
             <div id="fields-avatar" style="display:none;">
-                <label>Загрузите 3 фотографии себя с разных сторон:</label>
+                <label>Загрузите фотографии или исходное видео с лицом:</label>
                 <div class="upload-box" onclick="document.getElementById('av-files').click()">
-                    <span id="lbl-av" style="font-size:12px; color:var(--accent-color);">📁 Выбрать 3 фотографии</span>
-                    <input type="file" id="av-files" class="file-hidden" accept="image/*" multiple onchange="document.getElementById('lbl-av').innerText='Выбрано файлов: '+this.files.length">
+                    <span id="lbl-av" style="font-size:12px; color:var(--accent-color);">📁 Выбрать файлы</span>
+                    <input type="file" id="av-files" class="file-hidden" accept="image/*,video/*" multiple onchange="document.getElementById('lbl-av').innerText='Выбрано файлов: '+this.files.length">
                 </div>
             </div>
 
@@ -598,13 +609,14 @@
 
         let activeCategory = 'image';
 
-        let userCoins = localStorage.getItem('hydra_user_coins');
-        if (userCoins === null) {
+        let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
+        if (isNaN(userCoins)) {
             userCoins = 10;
             localStorage.setItem('hydra_user_coins', userCoins);
         }
         document.getElementById('coins').innerText = userCoins;
 
+        // Точный каталог со сбалансированными базовыми стоимостями (за 5 секунд или за единицу)
         const sortedModels = {
             image: [
                 { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
@@ -624,33 +636,33 @@
                 { id: 'gpt-image-2', name: 'GPT Image 2', baseCost: 2 }
             ],
             video: [
-                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28 },
-                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18 },
-                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1 Flash', baseCost: 13 },
-                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12 },
-                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 10 },
-                { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5', baseCost: 16 },
-                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20 },
-                { id: 'kling-3.0-mc', name: 'Kling 3.0 Motion Control', baseCost: 8 },
-                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11 },
-                { id: 'kling-o3', name: 'Kling O3', baseCost: 9 },
-                { id: 'kling-o1', name: 'Kling O1', baseCost: 30 },
-                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar', baseCost: 16 },
-                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 Motion Control (K)', baseCost: 6 },
-                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 Motion Control (F)', baseCost: 10 },
-                { id: 'kling-2.6', name: 'Kling 2.6', baseCost: 11 },
-                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 9 },
-                { id: 'kling-2.1', name: 'Kling 2.1', baseCost: 5 },
-                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8 },
-                { id: 'wan-2.6', name: 'Wan 2.6', baseCost: 14 },
-                { id: 'wan-2.5', name: 'Wan 2.5', baseCost: 12 },
-                { id: 'seedance-2', name: 'Seedance 2', baseCost: 8 },
-                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 8 },
-                { id: 'sora-2', name: 'Sora 2', baseCost: 18 },
-                { id: 'sora-2-pro-f', name: 'Sora 2 Pro (F)', baseCost: 33 },
-                { id: 'runway', name: 'Runway', baseCost: 60 },
-                { id: 'topaz', name: 'Topaz', baseCost: 14 },
-                { id: 'hailuo-02', name: 'Hailuo 02', baseCost: 6 }
+                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30, hasQuality: true, hasFrames: true },
+                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15, hasQuality: true, hasFrames: true },
+                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1 Flash', baseCost: 13, maxDur: 15, hasQuality: true, hasFrames: false },
+                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 10, maxDur: 10, hasQuality: true, hasFrames: false },
+                { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5', baseCost: 16, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15, hasQuality: true, hasFrames: true },
+                { id: 'kling-3.0-mc', name: 'Kling 3.0 Motion Control', baseCost: 8, maxDur: 10, hasQuality: false, hasFrames: true },
+                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'kling-o3', name: 'Kling O3', baseCost: 9, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'kling-o1', name: 'Kling O1', baseCost: 30, maxDur: 15, hasQuality: true, hasFrames: true },
+                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar', baseCost: 16, maxDur: 10, hasQuality: false, hasFrames: false },
+                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 Motion Control (K)', baseCost: 6, maxDur: 10, hasQuality: false, hasFrames: true },
+                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 Motion Control (F)', baseCost: 10, maxDur: 10, hasQuality: false, hasFrames: true },
+                { id: 'kling-2.6', name: 'Kling 2.6', baseCost: 11, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 9, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'kling-2.1', name: 'Kling 2.1 (Standard)', baseCost: 5, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'wan-2.6', name: 'Wan 2.6', baseCost: 14, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'wan-2.5', name: 'Wan 2.5', baseCost: 12, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'seedance-2', name: 'Seedance 2', baseCost: 8, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 8, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15, hasQuality: true, hasFrames: true },
+                { id: 'sora-2-pro-f', name: 'Sora 2 Pro (F)', baseCost: 33, maxDur: 20, hasQuality: true, hasFrames: true },
+                { id: 'runway', name: 'Runway', baseCost: 60, maxDur: 10, hasQuality: true, hasFrames: true },
+                { id: 'topaz', name: 'Topaz', baseCost: 14, maxDur: 10, hasQuality: true, hasFrames: false },
+                { id: 'hailuo-02', name: 'Hailuo 02', baseCost: 6, maxDur: 10, hasQuality: true, hasFrames: true }
             ],
             audio: [
                 { id: 'suno-v5', name: 'Suno V5 Music', baseCost: 3 },
@@ -691,7 +703,9 @@
             document.getElementById('fields-avatar').style.display = 'none';
 
             if (cat === 'image') document.getElementById('fields-image').style.display = 'block';
-            if (cat === 'video') document.getElementById('fields-video').style.display = 'block';
+            if (cat === 'video') {
+                document.getElementById('fields-video').style.display = 'block';
+            }
             if (cat === 'audio') document.getElementById('fields-audio').style.display = 'block';
             if (cat === 'avatar') document.getElementById('fields-avatar').style.display = 'block';
 
@@ -702,11 +716,19 @@
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.dataset.baseCost = m.baseCost;
+                if (m.maxDur) opt.dataset.maxDur = m.maxDur;
+                opt.dataset.hasQuality = m.hasQuality !== false;
+                opt.dataset.hasFrames = m.hasFrames !== false;
                 opt.innerText = `${m.name} — ${m.baseCost} ⚡`;
                 select.appendChild(opt);
             });
 
-            recalculateCost();
+            if (cat === 'video') {
+                onModelSelectChange();
+            } else {
+                recalculateCost();
+            }
+
             document.getElementById('gen-modal').style.display = 'block';
         }
 
@@ -719,33 +741,55 @@
             recalculateCost();
         }
 
-        // РАСЧЕТ СТОИМОСТИ ЗА 1 СЕКУНДУ (ЧИСТАЯ И НАДЕЖНАЯ ЛОГИКА)
+        // Динамическое отображение полей под конкретную модель видео
+        function onModelSelectChange() {
+            if (activeCategory === 'video') {
+                const select = document.getElementById('modal-model-select');
+                const selectedOpt = select.options[select.selectedIndex];
+                
+                const maxDur = parseInt(selectedOpt.dataset.maxDur || '10', 10);
+                const hasQuality = selectedOpt.dataset.hasQuality === 'true';
+                const hasFrames = selectedOpt.dataset.hasFrames === 'true';
+
+                // Настраиваем лимит ползунка длительности
+                const durRange = document.getElementById('vid-dur');
+                durRange.max = maxDur;
+                if (parseInt(durRange.value, 10) > maxDur) {
+                    durRange.value = maxDur;
+                    document.getElementById('dur-val').innerText = maxDur + ' сек';
+                }
+
+                // Показываем/скрываем качество
+                document.getElementById('group-quality').style.display = hasQuality ? 'block' : 'none';
+
+                // Показываем/скрываем кадры и референсы
+                document.getElementById('group-start-img').style.display = hasFrames ? 'block' : 'none';
+                document.getElementById('group-end-img').style.display = hasFrames ? 'block' : 'none';
+                document.getElementById('group-vid-ref').style.display = hasFrames ? 'block' : 'none';
+            }
+            recalculateCost();
+        }
+
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
             if (!select.options.length) return;
 
             const selectedOpt = select.options[select.selectedIndex];
-            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 28;
+            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
             let finalCost = baseCost;
 
             if (activeCategory === 'video') {
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
-                const quality = document.getElementById('vid-quality').value;
+                const hasQuality = selectedOpt.dataset.hasQuality === 'true';
+                const quality = hasQuality ? document.getElementById('vid-quality').value : '480p';
 
-                // Базовая цена за 1 секунду для 480p (делим базовую стоимость модели на 5)
                 let costPerSec = baseCost / 5;
 
-                // Коэффициенты качества
-                let qualityMultiplier = 1.0; // 480p
-                if (quality === '720p') {
-                    qualityMultiplier = 2.25;
-                } else if (quality === '1080p' || quality === '1080p Full HD') {
-                    qualityMultiplier = 5.64;
-                } else if (quality === '4k' || quality === '4K Ultra HD') {
-                    qualityMultiplier = 8.5;
-                }
+                let qualityMultiplier = 1.0;
+                if (quality === '720p') qualityMultiplier = 2.25;
+                else if (quality === '1080p' || quality === '1080p Full HD') qualityMultiplier = 5.64;
+                else if (quality === '4k' || quality === '4K Ultra HD') qualityMultiplier = 8.5;
 
-                // Итог = (Цена за 1 сек) * (Коэффициент качества) * (Количество секунд)
                 finalCost = Math.round(costPerSec * qualityMultiplier * duration);
             } else if (activeCategory === 'image') {
                 const res = document.getElementById('img-res').value;
@@ -754,6 +798,7 @@
             }
 
             document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
+            window.currentCalculatedCost = finalCost;
         }
 
         function enhanceTextPrompt() {
@@ -787,21 +832,32 @@
             }
         }
 
+        // ПРОВЕРКА И СПИСАНИЕ ТОКЕНОВ ПЕРЕД ОТПРАВКОЙ НА ФОЛЛ AI
         async function executeModalGen() {
             const prompt = document.getElementById('modal-prompt').value;
             const model = document.getElementById('modal-model-select').value;
             if (!prompt) { alert("Введите запрос!"); return; }
 
+            const costToSpend = window.currentCalculatedCost || 5;
+
+            // Проверяем баланс на клиенте
+            if (userCoins < costToSpend) {
+                alert(`Недостаточно токенов! Требуется: ${costToSpend} ⚡, а у вас: ${userCoins} ⚡. Пополните баланс в профиле.`);
+                openShopModal();
+                return;
+            }
+
             const btn = document.getElementById('btn-modal-gen');
             btn.disabled = true;
-            btn.innerText = "⏳ Генерация...";
+            btn.innerText = "⏳ Списание и генерация...";
 
-            const duration = document.getElementById('vid-dur').value;
-            const quality = document.getElementById('vid-quality').value;
+            const duration = document.getElementById('vid-dur') ? document.getElementById('vid-dur').value : 5;
+            const quality = document.getElementById('vid-quality') ? document.getElementById('vid-quality').value : '720p';
             const format = document.getElementById('vid-format') ? document.getElementById('vid-format').value : 'mp4';
             const websearch = document.getElementById('vid-websearch') ? document.getElementById('vid-websearch').checked : false;
 
             try {
+                // Отправляем запрос на бэкенд (бэкенд проверяет и списывает токены)
                 const res = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -812,20 +868,27 @@
                         duration,
                         quality,
                         format,
-                        websearch
+                        websearch,
+                        cost: costToSpend,
+                        user_coins_client: userCoins
                     })
                 });
 
                 const data = await res.json();
                 if (res.ok && data.success) {
-                    alert("Генерация завершена!");
+                    // Обновляем локальный баланс после успешного списания на сервере
+                    userCoins = data.new_balance;
+                    localStorage.setItem('hydra_user_coins', userCoins);
+                    document.getElementById('coins').innerText = userCoins;
+
+                    alert(`Генерация успешно завершена! Списано: ${costToSpend} ⚡`);
                     closeModal();
                     switchPage('history');
                 } else {
-                    alert("Ошибка: " + data.error);
+                    alert("Ошибка: " + (data.error || "Не удалось выполнить генерацию"));
                 }
             } catch (e) {
-                alert("Ошибка сети");
+                alert("Ошибка сети при обращении к серверу");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "🚀 Сгенерировать";
@@ -833,7 +896,10 @@
         }
 
         function buyPackage(priceTJS, tokens) {
-            alert(`Запрос на покупку пакета за ${priceTJS} TJS (${tokens} Кредитов ⚡) создан!`);
+            userCoins += tokens;
+            localStorage.setItem('hydra_user_coins', userCoins);
+            document.getElementById('coins').innerText = userCoins;
+            alert(`Успешно куплено! Начислено +${tokens} ⚡. Баланс обновлен.`);
             closeShopModal();
         }
 
