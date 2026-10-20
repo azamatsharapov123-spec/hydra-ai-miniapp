@@ -183,24 +183,6 @@
         }
         .file-hidden { display: none; }
 
-        .toggle-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-top: 10px; margin-bottom: 10px; background: #09090b;
-            padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
-        }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider-round {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #3f3f46; transition: .3s; border-radius: 24px;
-        }
-        .slider-round:before {
-            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-            background-color: white; transition: .3s; border-radius: 50%;
-        }
-        input:checked + .slider-round { background-color: var(--accent-color); }
-        input:checked + .slider-round:before { transform: translateX(20px); }
-
         .btn-main {
             width: 100%; background: var(--accent-gradient); color: #fff;
             font-weight: 700; border: none; padding: 14px; border-radius: 12px;
@@ -233,7 +215,7 @@
         </div>
     </div>
 
-    <!-- 1. ГЛАВНАЯ СТРАНИЦА -->
+    <!-- 1. ГЛАВНАЯ -->
     <div id="page-home" class="app-page active-page">
         <div class="promo-slider">
             <div class="promo-card">
@@ -325,7 +307,6 @@
     <!-- 5. ПРОФИЛЬ -->
     <div id="page-profile" class="app-page">
         <h2>Профиль</h2>
-
         <div class="profile-user-card">
             <div class="user-avatar-img" id="u-avatar">U</div>
             <div>
@@ -339,102 +320,47 @@
         <div class="partner-box">
             <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
             <p style="font-size:12px; color:var(--text-secondary); margin:0;">
-                Приглашайте друзей — получайте <b>20%</b> с их покупок и <b>20%</b> с их доходов.
+                Приглашайте друзей — получайте <b>20%</b> с их покупок.
             </p>
-
-            <div class="partner-grid">
-                <div class="stat-card">
-                    <div style="font-size:10px; color:var(--text-secondary);">Ваш баланс</div>
-                    <div style="font-size:15px; font-weight:800; color:#fff; margin-top:2px;" id="p-balance">0.00 TJS</div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:10px; color:var(--text-secondary);">Заработано всего</div>
-                    <div style="font-size:15px; font-weight:800; color:#fff; margin-top:2px;" id="p-earned">0.00 TJS</div>
-                </div>
-            </div>
-
-            <label>Ваша ссылка:</label>
+            <label style="margin-top:10px;">Ваша ссылка:</label>
             <input type="text" id="ref-link-input" readonly value="https://t.me/HydraAIBot?start=ref123">
-
             <div style="display:flex; gap:8px; margin-top:10px;">
                 <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:0;" onclick="copyLink()">📋 Скопировать</button>
                 <button class="btn-main" style="margin-top:0;" onclick="shareLink()">✈ Отправить</button>
             </div>
         </div>
-
-        <div class="partner-box">
-            <h4 style="margin:0 0 6px 0;">История выводов</h4>
-            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">
-                Минимальная сумма вывода: <b>100 TJS</b>.
-            </div>
-            <div id="withdraw-list" style="font-size:11px; color:var(--text-secondary);">Заявок на вывод пока не было</div>
-            <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:10px;" onclick="alert('Минимальная сумма вывода: 100 TJS')">Запросить вывод средств</button>
-        </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ПОКУПКИ ТАРИФОВ -->
+    <!-- МОДАЛЬНОЕ ОКНО ПОКУПКИ -->
     <div class="modal-overlay" id="shop-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                 <h3 style="margin:0;">Выберите тарифный пакет (TJS)</h3>
                 <span style="cursor:pointer; font-size:20px;" onclick="closeShopModal()">✕</span>
             </div>
-
             <div class="packages-list">
                 <div class="package-card" onclick="buyPackage(70, 100)">
-                    <div>
-                        <div class="pkg-title">START — 100 Кредитов ⚡</div>
-                        <div class="pkg-sub">~200 фото / ~16 видео</div>
-                    </div>
+                    <div><div class="pkg-title">START — 100 Кредитов ⚡</div><div class="pkg-sub">~200 фото / ~16 видео</div></div>
                     <div class="pkg-price">70 TJS</div>
                 </div>
-
                 <div class="package-card" style="border-color:var(--accent-color);" onclick="buyPackage(130, 250)">
-                    <div>
-                        <div class="pkg-title">MIDDLE (Популярный) — 250 ⚡</div>
-                        <div class="pkg-sub">~400 фото / ~33 видео</div>
-                    </div>
+                    <div><div class="pkg-title">MIDDLE — 250 Кредитов ⚡</div><div class="pkg-sub">~400 фото / ~33 видео</div></div>
                     <div class="pkg-price">130 TJS</div>
                 </div>
-
                 <div class="package-card" onclick="buyPackage(300, 500)">
-                    <div>
-                        <div class="pkg-title">PRO — 500 Кредитов ⚡</div>
-                        <div class="pkg-sub">~1000 фото / ~82 видео</div>
-                    </div>
+                    <div><div class="pkg-title">PRO — 500 Кредитов ⚡</div><div class="pkg-sub">~1000 фото / ~82 видео</div></div>
                     <div class="pkg-price">300 TJS</div>
                 </div>
-
                 <div class="package-card" onclick="buyPackage(535, 1000)">
-                    <div>
-                        <div class="pkg-title">CREATOR — 1 000 Кредитов ⚡</div>
-                        <div class="pkg-sub">~2000 фото / ~200 видео</div>
-                    </div>
+                    <div><div class="pkg-title">CREATOR — 1 000 Кредитов ⚡</div><div class="pkg-sub">~2000 фото / ~200 видео</div></div>
                     <div class="pkg-price">535 TJS</div>
                 </div>
-
-                <div class="package-card" onclick="buyPackage(890, 2000)">
-                    <div>
-                        <div class="pkg-title">ULTRA PRO — 2 000 Кредитов ⚡</div>
-                        <div class="pkg-sub">~10000 фото / 500+ видео</div>
-                    </div>
-                    <div class="pkg-price">890 TJS</div>
-                </div>
-
-                <div class="package-card" onclick="buyPackage(1550, 3000)">
-                    <div>
-                        <div class="pkg-title">UNLIMITED — 3 000 Кредитов ⚡</div>
-                        <div class="pkg-sub">~12000+ фото / 700+ видео</div>
-                    </div>
-                    <div class="pkg-price">1 550 TJS</div>
-                </div>
             </div>
-
             <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color);" onclick="closeShopModal()">Закрыть</button>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ -->
+    <!-- МОДАЛЬНОЕ ОКНО НАСТРОЙКИ ГЕНЕРАЦИИ -->
     <div class="modal-overlay" id="gen-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -447,75 +373,20 @@
 
             <!-- ПОЛЯ ДЛЯ КАРТИНОК -->
             <div id="fields-image" style="display:none;">
-                <label>Референс изображение:</label>
-                <div class="upload-box" onclick="document.getElementById('img-ref-file').click()">
-                    <span id="lbl-img-ref" style="font-size:12px; color:var(--accent-color);">📁 Загрузить фото-референс</span>
-                    <input type="file" id="img-ref-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-img-ref').innerText=this.files[0].name">
-                </div>
-
                 <label>Соотношение сторон:</label>
                 <select id="img-aspect">
                     <option value="1:1">Квадрат (1:1)</option>
                     <option value="16:9">Горизонтальное (16:9)</option>
                     <option value="9:16">Вертикальное (9:16)</option>
-                    <option value="4:3">Портрет (4:3)</option>
-                    <option value="3:4">Альбом (3:4)</option>
-                </select>
-
-                <label>Разрешение:</label>
-                <select id="img-res" onchange="recalculateCost()">
-                    <option value="1k">1K Standard</option>
-                    <option value="2k">2K HD (+1 ⚡)</option>
-                    <option value="4k">4K Ultra HD (+2 ⚡)</option>
                 </select>
             </div>
 
             <!-- ПОЛЯ ДЛЯ ВИДЕО -->
             <div id="fields-video" style="display:none;">
-                <div id="group-start-img">
-                    <label>Начальный кадр:</label>
-                    <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
-                        <span id="lbl-vid-start" style="font-size:12px; color:var(--accent-color);">📁 Загрузить кадр</span>
-                        <input type="file" id="vid-start-file" class="file-hidden" accept="image/*" onchange="document.getElementById('lbl-vid-start').innerText=this.files[0].name">
-                    </div>
-                </div>
-
-                <label>Соотношение сторон:</label>
-                <select id="vid-aspect">
-                    <option value="16:9">16:9</option>
-                    <option value="9:16">9:16</option>
-                    <option value="1:1">1:1</option>
-                </select>
-
-                <div id="group-duration">
-                    <label>Длительность (сек):</label>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
-                        <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ПОЛЯ ДЛЯ АУДИО -->
-            <div id="fields-audio" style="display:none;">
-                <label>Режим работы:</label>
-                <select id="aud-mode">
-                    <option value="auto">Автоматический режим</option>
-                    <option value="text">Свой текст</option>
-                </select>
-                <label>Голос / Исполнение:</label>
-                <select id="aud-voice">
-                    <option value="male">Мужской голос</option>
-                    <option value="female">Женский голос</option>
-                </select>
-            </div>
-
-            <!-- ПОЛЯ ДЛЯ АВАТАРОВ -->
-            <div id="fields-avatar" style="display:none;">
-                <label>Загрузите фото с лицом:</label>
-                <div class="upload-box" onclick="document.getElementById('av-files').click()">
-                    <span id="lbl-av" style="font-size:12px; color:var(--accent-color);">📁 Выбрать файлы</span>
-                    <input type="file" id="av-files" class="file-hidden" accept="image/*,video/*" onchange="document.getElementById('lbl-av').innerText='Выбрано файлов: '+this.files.length">
+                <label>Длительность (сек):</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
+                    <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
                 </div>
             </div>
 
@@ -525,28 +396,17 @@
             </div>
 
             <div id="token-cost-hint" style="font-size:12px; color:#facc15; margin-top:10px; font-weight:800; text-align:right;">Сгенерировать — 5 ⚡</div>
-
             <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
         </div>
     </div>
 
     <!-- НИЖНЕЕ МЕНЮ -->
     <div class="nav-bar">
-        <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
-            <div class="nav-icon">🏠</div>Главная
-        </div>
-        <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')">
-            <div class="nav-icon">💡</div>Идеи
-        </div>
-        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')">
-            <div class="nav-icon">💬</div>Чат AI
-        </div>
-        <div class="nav-item" id="nav-history" onclick="switchPage('history')">
-            <div class="nav-icon">🕒</div>История
-        </div>
-        <div class="nav-item" id="nav-profile" onclick="switchPage('profile')">
-            <div class="nav-icon">👤</div>Профиль
-        </div>
+        <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><div class="nav-icon">🏠</div>Главная</div>
+        <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')"><div class="nav-icon">💡</div>Идеи</div>
+        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')"><div class="nav-icon">💬</div>Чат AI</div>
+        <div class="nav-item" id="nav-history" onclick="switchPage('history')"><div class="nav-icon">🕒</div>История</div>
+        <div class="nav-item" id="nav-profile" onclick="switchPage('profile')"><div class="nav-icon">👤</div>Профиль</div>
     </div>
 
     <script>
@@ -554,30 +414,37 @@
         tg.expand();
 
         let activeCategory = 'image';
-
         let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
-        if (isNaN(userCoins)) {
-            userCoins = 10;
-            localStorage.setItem('hydra_user_coins', userCoins);
-        }
+        if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
         document.getElementById('coins').innerText = userCoins;
 
+        // ПОЛНЫЙ КАТАЛОГ ВСЕХ МОДЕЛЕЙ И СТОИМОСТИ
         const sortedModels = {
             image: [
                 { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
                 { id: 'nanobanana-2.1', name: 'Nano Banana 2.1', baseCost: 2 },
+                { id: 'nanobanana-1', name: 'Nano Banana 1', baseCost: 1 },
+                { id: 'qwen-edit', name: 'Qwen Image Edit', baseCost: 1 },
+                { id: 'seedream-5pro', name: 'Seedream 5 Pro', baseCost: 2 },
+                { id: 'seedream-1', name: 'Seedream 1', baseCost: 1 },
                 { id: 'gpt-image-2.5', name: 'GPT Image 2.5', baseCost: 1 }
             ],
             video: [
                 { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30 },
+                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15 },
+                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10 },
                 { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15 },
-                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8, maxDur: 10 }
+                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10 },
+                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8, maxDur: 10 },
+                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15 },
+                { id: 'runway', name: 'Runway Gen3', baseCost: 60, maxDur: 10 }
             ],
             audio: [
                 { id: 'suno-v5', name: 'Suno V5 Music', baseCost: 3 },
                 { id: 'elevenlabs-v3', name: 'ElevenLabs TTS v3', baseCost: 10 }
             ],
             avatar: [
+                { id: 'multi-talk', name: 'MultiTalk Avatar Lipsync', baseCost: 15 },
                 { id: 'live-portrait', name: 'LivePortrait Animate', baseCost: 10 }
             ]
         };
@@ -600,13 +467,9 @@
 
             document.getElementById('fields-image').style.display = 'none';
             document.getElementById('fields-video').style.display = 'none';
-            document.getElementById('fields-audio').style.display = 'none';
-            document.getElementById('fields-avatar').style.display = 'none';
 
             if (cat === 'image') document.getElementById('fields-image').style.display = 'block';
             if (cat === 'video') document.getElementById('fields-video').style.display = 'block';
-            if (cat === 'audio') document.getElementById('fields-audio').style.display = 'block';
-            if (cat === 'avatar') document.getElementById('fields-avatar').style.display = 'block';
 
             const select = document.getElementById('modal-model-select');
             select.innerHTML = '';
@@ -648,10 +511,6 @@
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 let costPerSec = baseCost / 5;
                 finalCost = Math.round(costPerSec * duration);
-            } else if (activeCategory === 'image') {
-                const res = document.getElementById('img-res').value;
-                if (res === '2k') finalCost += 1;
-                if (res === '4k') finalCost += 2;
             }
 
             document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
