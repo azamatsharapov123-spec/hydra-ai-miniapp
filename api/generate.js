@@ -9,7 +9,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Промпт не передан' });
   }
 
-  // Карта эндпоинтов Fal.ai
   const endpoints = {
     // Картинки
     'flux-schnell': 'https://fal.run/fal-ai/flux/schnell',
@@ -17,12 +16,12 @@ export default async function handler(req, res) {
     'recraft-v3': 'https://fal.run/fal-ai/recraft-v3',
     'ideogram-v2': 'https://fal.run/fal-ai/ideogram/v2',
     
-    // Видео
+    // Новейшие флагманские Видеомодели
+    'kling-3.0': 'https://fal.run/fal-ai/kling-video/v3/pro/text-to-video',
+    'wan-3.0': 'https://fal.run/fal-ai/wan/v3/text-to-video',
     'seedance-2.5': 'https://fal.run/fal-ai/bytedance/seedance-2.5/image-to-video',
-    'kling-1.5': 'https://fal.run/fal-ai/kling-video/v1.5/standard/text-to-video',
-    'wan-2.1': 'https://fal.run/fal-ai/wan/v2.1/text-to-video',
 
-    // Аудио & Чат
+    // Аудио и Чат
     'suno-v4': 'https://fal.run/fal-ai/suno/v4',
     'elevenlabs': 'https://fal.run/fal-ai/elevenlabs/tts',
     'gpt-4o': 'https://fal.run/fal-ai/any-llm',
@@ -31,13 +30,16 @@ export default async function handler(req, res) {
 
   const targetEndpoint = endpoints[model] || endpoints['flux-schnell'];
 
-  // Формируем уникальный body под конкретную модель
   let bodyData = { prompt };
 
   if (category === 'video') {
-    bodyData.resolution = resolution === '1080p' ? '1080p' : '720p';
-    bodyData.seconds_total = parseInt(duration) || 5;
+    bodyData.duration = `${duration || 5}`;
+    bodyData.aspect_ratio = '16:9';
+    bodyData.generate_audio = true;
     bodyData.enable_audio = true;
+    if (resolution) {
+      bodyData.resolution = resolution;
+    }
   } else if (model === 'gpt-4o' || model === 'claude-sonnet') {
     bodyData.model = model === 'claude-sonnet' ? 'anthropic/claude-3.5-sonnet' : 'openai/gpt-4o';
   } else if (model === 'elevenlabs') {
@@ -57,10 +59,9 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || 'Ошибка при обработке запроса нейросетью');
+      throw new Error(data.detail || 'Ошибка при обработке запроса');
     }
 
-    // Извлекаем результат в зависимости от типа
     const mediaUrl = data.images?.[0]?.url || data.video?.url || data.audio_url?.url || data.audio?.url || data.url;
     const textResult = data.output || data.text || data.choices?.[0]?.message?.content;
 
