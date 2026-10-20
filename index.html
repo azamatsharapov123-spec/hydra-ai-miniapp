@@ -184,7 +184,7 @@
 
         .toggle-row {
             display: flex; justify-content: space-between; align-items: center;
-            margin-top: 14px; margin-bottom: 14px; background: #09090b;
+            margin-top: 10px; margin-bottom: 10px; background: #09090b;
             padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
         }
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
@@ -227,8 +227,8 @@
     <div class="header">
         <div class="brand-logo">⚡ Hydra AI Studio</div>
         <div class="header-actions">
-            <div class="buy-badge" onclick="openShopModal()">КУПИТЬ <span id="coins">10</span> ⚙</div>
-            <div class="settings-btn" onclick="openShopModal()">⚙</div>
+            <div class="buy-badge" onclick="openShopModal()">КУПИТЬ <span id="coins">10</span> ⚡</div>
+            <div class="settings-btn" onclick="openShopModal()">➕</div>
         </div>
     </div>
 
@@ -382,7 +382,7 @@
             <div class="packages-list">
                 <div class="package-card" onclick="buyPackage(70, 100)">
                     <div>
-                        <div class="pkg-title">START — 100 Кредитов ⚙</div>
+                        <div class="pkg-title">START — 100 Кредитов ⚡</div>
                         <div class="pkg-sub">~200 фото / ~16 видео</div>
                     </div>
                     <div class="pkg-price">70 TJS</div>
@@ -390,7 +390,7 @@
 
                 <div class="package-card" style="border-color:var(--accent-color);" onclick="buyPackage(130, 250)">
                     <div>
-                        <div class="pkg-title">MIDDLE (Популярный) — 250 ⚙</div>
+                        <div class="pkg-title">MIDDLE (Популярный) — 250 ⚡</div>
                         <div class="pkg-sub">~400 фото / ~33 видео</div>
                     </div>
                     <div class="pkg-price">130 TJS</div>
@@ -398,7 +398,7 @@
 
                 <div class="package-card" onclick="buyPackage(300, 500)">
                     <div>
-                        <div class="pkg-title">PRO — 500 Кредитов ⚙</div>
+                        <div class="pkg-title">PRO — 500 Кредитов ⚡</div>
                         <div class="pkg-sub">~1000 фото / ~82 видео</div>
                     </div>
                     <div class="pkg-price">300 TJS</div>
@@ -406,7 +406,7 @@
 
                 <div class="package-card" onclick="buyPackage(535, 1000)">
                     <div>
-                        <div class="pkg-title">CREATOR — 1 000 Кредитов ⚙</div>
+                        <div class="pkg-title">CREATOR — 1 000 Кредитов ⚡</div>
                         <div class="pkg-sub">~2000 фото / ~200 видео</div>
                     </div>
                     <div class="pkg-price">535 TJS</div>
@@ -414,7 +414,7 @@
 
                 <div class="package-card" onclick="buyPackage(890, 2000)">
                     <div>
-                        <div class="pkg-title">ULTRA PRO — 2 000 Кредитов ⚙</div>
+                        <div class="pkg-title">ULTRA PRO — 2 000 Кредитов ⚡</div>
                         <div class="pkg-sub">~10000 фото / 500+ видео</div>
                     </div>
                     <div class="pkg-price">890 TJS</div>
@@ -422,7 +422,7 @@
 
                 <div class="package-card" onclick="buyPackage(1550, 3000)">
                     <div>
-                        <div class="pkg-title">UNLIMITED — 3 000 Кредитов ⚙</div>
+                        <div class="pkg-title">UNLIMITED — 3 000 Кредитов ⚡</div>
                         <div class="pkg-sub">~12000+ фото / 700+ видео</div>
                     </div>
                     <div class="pkg-price">1 550 TJS</div>
@@ -433,7 +433,7 @@
         </div>
     </div>
 
-    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ СО ВСЕМИ ПОЛЯМИ И ДИНАМИЧЕСКИМ РАСЧЕТОМ -->
+    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ -->
     <div class="modal-overlay" id="gen-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -464,12 +464,12 @@
                 <label>Разрешение:</label>
                 <select id="img-res" onchange="recalculateCost()">
                     <option value="1k">1K Standard</option>
-                    <option value="2k">2K HD (+1 ⚙)</option>
-                    <option value="4k">4K Ultra HD (+2 ⚙)</option>
+                    <option value="2k">2K HD (+1 ⚡)</option>
+                    <option value="4k">4K Ultra HD (+2 ⚡)</option>
                 </select>
             </div>
 
-            <!-- ПОЛЯ ДЛЯ ВИДЕО (ДЛИТЕЛЬНОСТЬ ДО 30 СЕК) -->
+            <!-- ПОЛЯ ДЛЯ ВИДЕО -->
             <div id="fields-video" style="display:none;">
                 <label>Начальный кадр (обязательно):</label>
                 <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
@@ -504,8 +504,8 @@
                 <select id="vid-quality" onchange="recalculateCost()">
                     <option value="480p">480p</option>
                     <option value="720p" selected>720p HD</option>
-                    <option value="1080p">1080p Full HD (x1.2)</option>
-                    <option value="4k">4K Ultra HD (x1.5)</option>
+                    <option value="1080p">1080p Full HD</option>
+                    <option value="4k">4K Ultra HD</option>
                 </select>
 
                 <label>Длительность (сек):</label>
@@ -518,6 +518,21 @@
                     <span style="font-size:12px; font-weight:600;">Звук (Аудиодорожка)</span>
                     <label class="switch">
                         <input type="checkbox" id="vid-sound" checked>
+                        <span class="slider-round"></span>
+                    </label>
+                </div>
+
+                <label>Формат файла:</label>
+                <select id="vid-format">
+                    <option value="mp4" selected>MP4</option>
+                    <option value="webm">WEBM</option>
+                    <option value="gif">GIF</option>
+                </select>
+
+                <div class="toggle-row">
+                    <span style="font-size:12px; font-weight:600;">Веб-поиск (Актуальные данные)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="vid-websearch">
                         <span class="slider-round"></span>
                     </label>
                 </div>
@@ -552,7 +567,7 @@
                 <textarea id="modal-prompt" rows="3" placeholder="Опишите детально ваш запрос..."></textarea>
             </div>
 
-            <div id="token-cost-hint" style="font-size:12px; color:#facc15; margin-top:10px; font-weight:800; text-align:right;">Стоимость генерации: ~5 ⚙</div>
+            <div id="token-cost-hint" style="font-size:12px; color:#facc15; margin-top:10px; font-weight:800; text-align:right;">Сгенерировать — 5 ⚡</div>
 
             <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
         </div>
@@ -583,15 +598,14 @@
 
         let activeCategory = 'image';
 
-        // ИНИЦИАЛИЗАЦИЯ НАЧАЛЬНОГО БОНУСНОГО БАЛАНСА (10 ТОКЕНОВ ПРИ РЕГИСТРАЦИИ)
+        // 10 ТОКЕНОВ ПРИ ПЕРВОЙ РЕГИСТРАЦИИ
         let userCoins = localStorage.getItem('hydra_user_coins');
         if (userCoins === null) {
-            userCoins = 10; // Стартовый приветственный бонус
+            userCoins = 10;
             localStorage.setItem('hydra_user_coins', userCoins);
         }
         document.getElementById('coins').innerText = userCoins;
 
-        // СПИСОК И БАЗОВАЯ СТОИМОСТЬ МОДЕЛЕЙ
         const sortedModels = {
             image: [
                 { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
@@ -689,7 +703,7 @@
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.dataset.baseCost = m.baseCost;
-                opt.innerText = `${m.name} — ${m.baseCost} ⚙ (база)`;
+                opt.innerText = `${m.name} — ${m.baseCost} ⚡`;
                 select.appendChild(opt);
             });
 
@@ -711,26 +725,33 @@
             if (!select.options.length) return;
 
             const selectedOpt = select.options[select.selectedIndex];
-            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
+            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 28;
             let finalCost = baseCost;
 
             if (activeCategory === 'video') {
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 const quality = document.getElementById('vid-quality').value;
 
-                let durationMultiplier = duration / 5;
-                let qualityMultiplier = 1.0;
-                if (quality === '1080p') qualityMultiplier = 1.2;
-                if (quality === '4k') qualityMultiplier = 1.5;
+                let qualityBase = baseCost;
+                if (quality === '720p') {
+                    qualityBase = Math.round(baseCost * 2.25);
+                } else if (quality === '1080p') {
+                    qualityBase = Math.round(baseCost * 5.64);
+                } else if (quality === '4k') {
+                    qualityBase = Math.round(baseCost * 8.5);
+                }
 
-                finalCost = Math.round(baseCost * durationMultiplier * qualityMultiplier);
+                let durationRatio = duration / 5;
+                let durationMultiplier = Math.pow(durationRatio, 1.35);
+
+                finalCost = Math.round(qualityBase * durationMultiplier);
             } else if (activeCategory === 'image') {
                 const res = document.getElementById('img-res').value;
                 if (res === '2k') finalCost += 1;
                 if (res === '4k') finalCost += 2;
             }
 
-            document.getElementById('token-cost-hint').innerText = `Итоговая стоимость: ~${finalCost} ⚙`;
+            document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
         }
 
         function enhanceTextPrompt() {
@@ -775,6 +796,8 @@
 
             const duration = document.getElementById('vid-dur').value;
             const quality = document.getElementById('vid-quality').value;
+            const format = document.getElementById('vid-format') ? document.getElementById('vid-format').value : 'mp4';
+            const websearch = document.getElementById('vid-websearch') ? document.getElementById('vid-websearch').checked : false;
 
             try {
                 const res = await fetch('/api/generate', {
@@ -785,7 +808,9 @@
                         model,
                         category: activeCategory,
                         duration,
-                        quality
+                        quality,
+                        format,
+                        websearch
                     })
                 });
 
@@ -806,7 +831,7 @@
         }
 
         function buyPackage(priceTJS, tokens) {
-            alert(`Запрос на покупку пакета за ${priceTJS} TJS (${tokens} Кредитов) создан!`);
+            alert(`Запрос на покупку пакета за ${priceTJS} TJS (${tokens} Кредитов ⚡) создан!`);
             closeShopModal();
         }
 
