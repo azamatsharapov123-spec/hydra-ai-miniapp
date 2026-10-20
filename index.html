@@ -53,6 +53,7 @@
         .app-page { display: none; }
         .app-page.active-page { display: block; }
 
+        /* Промо банеры */
         .promo-slider {
             display: flex;
             gap: 10px;
@@ -90,9 +91,10 @@
             cursor: pointer;
         }
 
+        /* Быстрые инструменты (4 основных вида) */
         .quick-tools {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             margin-bottom: 18px;
             text-align: center;
@@ -101,16 +103,16 @@
         .tool-icon-btn {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
             margin: 0 auto 6px auto;
         }
-        .tool-name { font-size: 10px; color: var(--text-secondary); font-weight: 600; }
+        .tool-name { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
 
         .search-box {
             position: relative;
@@ -134,6 +136,61 @@
             color: var(--text-secondary);
         }
 
+        .partner-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        /* Чат AI */
+        .chat-box {
+            display: flex; flex-direction: column; height: 380px;
+            background: #09090b; border: 1px solid var(--border-color);
+            border-radius: 14px; padding: 12px; overflow-y: auto; margin-bottom: 10px;
+        }
+        .chat-bubble { padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; font-size: 13px; max-width: 82%; }
+        .chat-bubble.user { background: var(--accent-color); color: #fff; align-self: flex-end; }
+        .chat-bubble.ai { background: var(--card-bg); border: 1px solid var(--border-color); color: #fff; align-self: flex-start; }
+
+        /* Профиль */
+        .profile-user-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+        .user-avatar-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 20px;
+        }
+        .partner-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+        .stat-card {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        /* Модалка настроек */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -176,17 +233,10 @@
             border-radius: 12px;
             font-size: 15px;
             cursor: pointer;
-            margin-top: 16px;
+            margin-top: 14px;
         }
 
-        .partner-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
-
+        /* Нижнее меню */
         .nav-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -198,19 +248,9 @@
             padding: 8px 0;
             z-index: 100;
         }
-        .nav-item { text-align: center; color: var(--text-secondary); font-size: 10px; cursor: pointer; flex: 1; }
+        .nav-item { text-align: center; color: var(--text-secondary); font-size: 9px; cursor: pointer; flex: 1; }
         .nav-item.active { color: #ffffff; font-weight: 700; }
         .nav-icon { font-size: 18px; margin-bottom: 2px; }
-
-        /* Чат */
-        .chat-container {
-            display: flex; flex-direction: column; height: 350px;
-            background: #09090b; border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 10px; overflow-y: auto; margin-bottom: 10px;
-        }
-        .chat-bubble { padding: 10px; border-radius: 12px; margin-bottom: 8px; font-size: 13px; max-width: 80%; }
-        .chat-bubble.user { background: var(--accent-color); color: #fff; align-self: flex-end; }
-        .chat-bubble.ai { background: var(--card-bg); border: 1px solid var(--border-color); color: #fff; align-self: flex-start; }
     </style>
 </head>
 <body>
@@ -225,8 +265,8 @@
         <div class="promo-slider">
             <div class="promo-card">
                 <span class="promo-tag">ТОП ВИТРИНА</span>
-                <div class="promo-title">Seedance 2.5 & Nano Banana</div>
-                <button class="promo-btn" onclick="openModal('video', 'seedance-2.5')">Попробовать</button>
+                <div class="promo-title">Создание ИИ Видео и Картинок</div>
+                <button class="promo-btn" onclick="openModal('video')">Попробовать</button>
             </div>
             <div class="promo-card">
                 <span class="promo-tag">ПАРТНЕРАМ</span>
@@ -235,27 +275,23 @@
             </div>
         </div>
 
-        <!-- Быстрые инструменты (популярность отсортирована) -->
+        <!-- Быстрые инструменты -->
         <div class="quick-tools">
-            <div class="tool-item" onclick="openModal('image', 'nano-banana-pro')">
-                <div class="tool-icon-btn">🍌</div>
-                <div class="tool-name">Nano Banana</div>
-            </div>
-            <div class="tool-item" onclick="openModal('video', 'seedance-2.5')">
-                <div class="tool-icon-btn">🎥</div>
-                <div class="tool-name">Seedance 2.5</div>
-            </div>
             <div class="tool-item" onclick="openModal('image')">
                 <div class="tool-icon-btn">🖼</div>
                 <div class="tool-name">AI Картинка</div>
             </div>
-            <div class="tool-item" onclick="openModal('audio', 'suno-v4')">
-                <div class="tool-icon-btn">🎵</div>
-                <div class="tool-name">Suno v4</div>
+            <div class="tool-item" onclick="openModal('video')">
+                <div class="tool-icon-btn">🎥</div>
+                <div class="tool-name">AI Видео</div>
             </div>
-            <div class="tool-item" onclick="openModal('chat')">
-                <div class="tool-icon-btn">💬</div>
-                <div class="tool-name">AI Чат</div>
+            <div class="tool-item" onclick="openModal('audio')">
+                <div class="tool-icon-btn">🎵</div>
+                <div class="tool-name">AI Аудио</div>
+            </div>
+            <div class="tool-item" onclick="openModal('avatar')">
+                <div class="tool-icon-btn">👤</div>
+                <div class="tool-name">AI Аватар</div>
             </div>
         </div>
 
@@ -266,46 +302,91 @@
 
         <div style="font-size:14px; font-weight:800; margin-bottom:10px;">🔥 ТРЕНДЫ НА МИЛЛИОН ПРОСМОТРОВ</div>
         <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
-            <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('video', 'seedance-2.5')">
+            <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('video')">
                 <div style="font-size:30px;">🎬</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">Seedance 2.5 Видео</div>
+                <div style="font-size:12px; font-weight:700; margin-top:4px;">AI Видео Генерация</div>
             </div>
-            <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('image', 'nano-banana-pro')">
-                <div style="font-size:30px;">🍌</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">Nano Banana Фото</div>
+            <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('image')">
+                <div style="font-size:30px;">🖼</div>
+                <div style="font-size:12px; font-weight:700; margin-top:4px;">AI Картинки & Ремейк</div>
             </div>
         </div>
     </div>
 
     <!-- 2. ИДЕИ -->
     <div id="page-ideas" class="app-page">
-        <h3>💡 Идеи и готовые пресеты</h3>
-        <p style="color:var(--text-secondary); font-size:13px;">Готовые промпты для генерации.</p>
+        <h3>💡 Идеи и шаблоны</h3>
+        <p style="color:var(--text-secondary); font-size:13px;">Готовые промпты для вдохновения.</p>
     </div>
 
-    <!-- 3. ИСТОРИЯ -->
+    <!-- 3. ЧАТ С ИИ (БЕСПЛАТНО) -->
+    <div id="page-chat" class="app-page">
+        <h3>💬 Чат с Hydra AI (Бесплатно ⚡)</h3>
+        <div class="chat-box" id="chat-messages">
+            <div class="chat-bubble ai">Привет! Я бесплатен для вас. Спросите меня о чем угодно!</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+            <input type="text" id="chat-page-input" placeholder="Напишите вопрос..." style="margin-bottom:0;">
+            <button class="btn-main" style="width:auto; margin-top:0; padding:0 18px;" onclick="sendPageChat()">Send</button>
+        </div>
+    </div>
+
+    <!-- 4. ИСТОРИЯ -->
     <div id="page-history" class="app-page">
-        <h2>История</h2>
-        <div id="history-content">Загрузка истории...</div>
+        <h2>История генераций</h2>
+        <div id="history-content" style="font-size:13px; color:var(--text-secondary);">У вас пока нет сохраненных генераций.</div>
     </div>
 
-    <!-- 4. ПРОФИЛЬ -->
+    <!-- 5. ПРОФИЛЬ (Полная стандартная структура) -->
     <div id="page-profile" class="app-page">
         <h2>Профиль</h2>
-        <div class="partner-box">
-            <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
-            <p style="font-size:12px; color:var(--text-secondary);">20% с покупок и 20% с дохода рефералов.</p>
-            <input type="text" id="ref-link" readonly value="https://t.me/HydraAIBot?start=ref123" style="margin-top:10px;">
+
+        <div class="profile-user-card">
+            <div class="user-avatar-img" id="u-avatar">U</div>
+            <div>
+                <div style="font-size:16px; font-weight:800;" id="u-name">Пользователь</div>
+                <div style="font-size:11px; color:var(--text-secondary);" id="u-id">ID: 0000000</div>
+            </div>
         </div>
 
         <div class="partner-box">
-            <h4 style="margin:0 0 8px 0;">История выводов</h4>
-            <div style="font-size:12px; color:var(--text-secondary);">Заявок на вывод пока не было</div>
-            <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:10px;" onclick="alert('Минимум 100 TJS')">Вывести средства (мин. 100 TJS)</button>
+            <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin:0;">
+                Приглашайте друзей — получайте <b>20%</b> с их покупок и <b>20%</b> с их доходов.
+            </p>
+
+            <div class="partner-grid">
+                <div class="stat-card">
+                    <div style="font-size:10px; color:var(--text-secondary);">Ваш баланс</div>
+                    <div style="font-size:15px; font-weight:800; color:#fff; margin-top:2px;" id="p-balance">0.00 TJS</div>
+                </div>
+                <div class="stat-card">
+                    <div style="font-size:10px; color:var(--text-secondary);">Заработано всего</div>
+                    <div style="font-size:15px; font-weight:800; color:#fff; margin-top:2px;" id="p-earned">0.00 TJS</div>
+                </div>
+            </div>
+
+            <label>Ваша ссылка:</label>
+            <input type="text" id="ref-link-input" readonly value="https://t.me/HydraAIBot?start=ref123">
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:0;" onclick="copyLink()">📋 Скопировать</button>
+                <button class="btn-main" style="margin-top:0;" onclick="shareLink()">✈ Отправить</button>
+            </div>
+        </div>
+
+        <!-- История выводов в самом низу профиля -->
+        <div class="partner-box">
+            <h4 style="margin:0 0 6px 0;">История выводов</h4>
+            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">
+                Минимальная сумма вывода: <b>100 TJS</b>.
+            </div>
+            <div id="withdraw-list" style="font-size:11px; color:var(--text-secondary);">Заявок на вывод пока не было</div>
+            <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:10px;" onclick="alert('Минимальная сумма вывода: 100 TJS')">Запросить вывод средств</button>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО С ПОЛНЫМ ОТСОРТИРОВАННЫМ СПИСКОМ МОДЕЛЕЙ -->
+    <!-- МОДАЛЬНОЕ ОКНО ДЛЯ ВЫБОРА МОДЕЛЕЙ -->
     <div class="modal-overlay" id="gen-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -313,66 +394,45 @@
                 <span style="cursor:pointer; font-size:20px;" onclick="closeModal()">✕</span>
             </div>
 
-            <div id="chat-section" style="display:none; margin-top:12px;">
-                <div class="chat-container" id="chat-bubbles">
-                    <div class="chat-bubble ai">Привет! Задайте любой вопрос, я помогу составить промпт или ответить на задачу бесплатно!</div>
-                </div>
-                <div style="display:flex; gap:6px;">
-                    <input type="text" id="chat-modal-input" placeholder="Введите сообщение..." style="margin-bottom:0;">
-                    <button class="btn-main" style="margin-top:0; width:auto; padding:0 16px;" onclick="sendFreeChat()">Send</button>
-                </div>
-            </div>
+            <label>Модель нейросети:</label>
+            <select id="modal-model-select"></select>
 
-            <div id="media-gen-section">
-                <label>Модель нейросети (отсортировано по популярности и качеству):</label>
-                <select id="modal-model-select"></select>
+            <label>Запрос (Промпт):</label>
+            <textarea id="modal-prompt" rows="3" placeholder="Опишите детально ваш запрос..."></textarea>
 
-                <label>Запрос (Промпт):</label>
-                <textarea id="modal-prompt" rows="3" placeholder="Опишите детально ваш запрос..."></textarea>
+            <label>Соотношение сторон:</label>
+            <select id="modal-aspect">
+                <option value="1:1">1:1 (Квадрат)</option>
+                <option value="16:9">16:9 (Горизонтальное)</option>
+                <option value="9:16">9:16 (Вертикальное)</option>
+            </select>
 
-                <label>Соотношение сторон:</label>
-                <select id="modal-aspect">
-                    <option value="1:1">1:1 (Квадрат)</option>
-                    <option value="16:9">16:9 (Горизонтальное)</option>
-                    <option value="9:16">9:16 (Вертикальное)</option>
-                </select>
+            <label>Разрешение:</label>
+            <select id="modal-resolution">
+                <option value="1k">1K Standard</option>
+                <option value="2k">2K HD</option>
+                <option value="4k">4K Ultra HD</option>
+            </select>
 
-                <label>Количество кадров:</label>
-                <select id="modal-count">
-                    <option value="1">1 калибр</option>
-                    <option value="2">2 калибра</option>
-                    <option value="4">4 калибра</option>
-                </select>
-
-                <label>Разрешение:</label>
-                <select id="modal-resolution">
-                    <option value="1k">1K Standard</option>
-                    <option value="2k">2K HD</option>
-                    <option value="4k">4K Ultra HD</option>
-                </select>
-
-                <label>Формат файла:</label>
-                <select id="modal-format">
-                    <option value="png">PNG</option>
-                </select>
-
-                <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
-            </div>
+            <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
         </div>
     </div>
 
-    <!-- НИЖНЕЕ МЕНЮ -->
+    <!-- НИЖНЕЕ МЕНЮ (С ДОБАВЛЕННЫМ AI ЧАТОМ) -->
     <div class="nav-bar">
-        <div class="nav-item active" onclick="switchPage('home')">
+        <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
             <div class="nav-icon">🏠</div>Главная
         </div>
-        <div class="nav-item" onclick="switchPage('ideas')">
+        <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')">
             <div class="nav-icon">💡</div>Идеи
         </div>
-        <div class="nav-item" onclick="switchPage('history')">
+        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')">
+            <div class="nav-icon">💬</div>Чат AI
+        </div>
+        <div class="nav-item" id="nav-history" onclick="switchPage('history')">
             <div class="nav-icon">🕒</div>История
         </div>
-        <div class="nav-item" onclick="switchPage('profile')">
+        <div class="nav-item" id="nav-profile" onclick="switchPage('profile')">
             <div class="nav-icon">👤</div>Профиль
         </div>
     </div>
@@ -383,26 +443,24 @@
 
         let activeCategory = 'image';
 
-        // ПОЛНЫЙ КАТАЛОГ С СОРТИРОВКОЙ ПО ПОПУЛЯРНОСТИ И СТОИМОСТИ
         const sortedModels = {
             image: [
-                { id: 'nano-banana-pro', name: '🔥 Nano Banana Pro (№1 Хит) — 15 ⚙' },
-                { id: 'flux-pro', name: 'FLUX 1.1 Pro (Флагман качества) — 25 ⚙' },
+                { id: 'nano-banana-pro', name: '🔥 Nano Banana Pro (№1) — 15 ⚙' },
+                { id: 'flux-pro', name: 'FLUX 1.1 Pro (Флагман) — 25 ⚙' },
                 { id: 'flux-3', name: 'FLUX 3 Image — 30 ⚙' },
-                { id: 'seedream-5', name: 'ByteDance Seedream 5.0 Pro — 20 ⚙' },
+                { id: 'seedream-5', name: 'ByteDance Seedream 5.0 — 20 ⚙' },
                 { id: 'ideogram-4', name: 'Ideogram v4 (Текст на фото) — 25 ⚙' },
                 { id: 'recraft-v3', name: 'Recraft V3 (Вектор и дизайн) — 20 ⚙' },
                 { id: 'sd-3.5', name: 'Stable Diffusion 3.5 Large — 15 ⚙' },
-                { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстрый эконом) — 10 ⚙' }
+                { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстрый) — 10 ⚙' }
             ],
             video: [
-                { id: 'seedance-2.5', name: '🔥 Bytedance Seedance 2.5 (№1 Хит + Звук) — 23 ⚙' },
-                { id: 'kling-3.0-pro', name: 'Kling 3.0 Pro (4K Ultra HD) — 35 ⚙' },
+                { id: 'seedance-2.5', name: '🔥 Bytedance Seedance 2.5 (№1) — 23 ⚙' },
+                { id: 'kling-3.0-pro', name: 'Kling 3.0 Pro (4K) — 35 ⚙' },
                 { id: 'kling-3.0-std', name: 'Kling 3.0 Standard — 20 ⚙' },
-                { id: 'minimax-h3', name: 'MiniMax H3 Max Video — 25 ⚙' },
+                { id: 'minimax-h3', name: 'MiniMax H3 Max — 25 ⚙' },
                 { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5 — 18 ⚙' },
                 { id: 'wan-3.0', name: 'Wan 3.0 Ultra Video — 15 ⚙' },
-                { id: 'luma-v2', name: 'Luma Dream Machine v2 — 15 ⚙' },
                 { id: 'pixverse-v6', name: 'PixVerse V6 Video — 10 ⚙' }
             ],
             avatar: [
@@ -413,47 +471,33 @@
             audio: [
                 { id: 'suno-v4', name: '🔥 Suno v4 (Песни и Музыка №1) — 30 ⚙' },
                 { id: 'sonilo-music', name: 'Sonilo Text to Music — 25 ⚙' },
-                { id: 'minimax-speech', name: 'MiniMax Speech-02 HD (Голос) — 12 ⚙' },
+                { id: 'minimax-speech', name: 'MiniMax Speech-02 HD — 12 ⚙' },
                 { id: 'elevenlabs', name: 'ElevenLabs TTS — 15 ⚙' },
-                { id: 'gemini-tts', name: 'Gemini 3.1 Flash TTS (Эконом) — 8 ⚙' }
-            ],
-            threed: [
-                { id: 'hunyuan-3d', name: '🔥 Hunyuan 3D Pro (Топ детализация) — 45 ⚙' },
-                { id: 'trellis-2', name: 'Trellis 2 (3D Mesh) — 40 ⚙' },
-                { id: 'tripo-3.1', name: 'Tripo H3.1 — 35 ⚙' }
+                { id: 'gemini-tts', name: 'Gemini 3.1 Flash TTS — 8 ⚙' }
             ]
         };
 
         function switchPage(pageId) {
             document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(`page-${pageId}`).classList.add('active-page');
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${pageId}`).classList.add('active');
         }
 
-        function openModal(cat, defaultModelId = null) {
+        function openModal(cat) {
             activeCategory = cat;
-            const chatSec = document.getElementById('chat-section');
-            const mediaSec = document.getElementById('media-gen-section');
+            document.getElementById('modal-title').innerText = `Настройка: ${cat.toUpperCase()}`;
 
-            if (cat === 'chat') {
-                chatSec.style.display = 'block';
-                mediaSec.style.display = 'none';
-                document.getElementById('modal-title').innerText = '💬 Чат с Hydra AI (Бесплатно)';
-            } else {
-                chatSec.style.display = 'none';
-                mediaSec.style.display = 'block';
-                document.getElementById('modal-title').innerText = `Настройка: ${cat.toUpperCase()}`;
-
-                const select = document.getElementById('modal-model-select');
-                select.innerHTML = '';
-                const list = sortedModels[cat] || sortedModels.image;
-                list.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m.id;
-                    opt.innerText = m.name;
-                    if (defaultModelId && m.id === defaultModelId) opt.selected = true;
-                    select.appendChild(opt);
-                });
-            }
+            const select = document.getElementById('modal-model-select');
+            select.innerHTML = '';
+            const list = sortedModels[cat] || sortedModels.image;
+            list.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.innerText = m.name;
+                select.appendChild(opt);
+            });
 
             document.getElementById('gen-modal').style.display = 'block';
         }
@@ -462,12 +506,12 @@
             document.getElementById('gen-modal').style.display = 'none';
         }
 
-        async function sendFreeChat() {
-            const input = document.getElementById('chat-modal-input');
+        async function sendPageChat() {
+            const input = document.getElementById('chat-page-input');
             const txt = input.value.trim();
             if (!txt) return;
 
-            const box = document.getElementById('chat-bubbles');
+            const box = document.getElementById('chat-messages');
             box.innerHTML += `<div class="chat-bubble user">${txt}</div>`;
             input.value = '';
 
@@ -475,7 +519,7 @@
                 const res = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: txt, category: 'chat', model: 'free-chat' })
+                    body: JSON.stringify({ prompt: txt, category: 'chat' })
                 });
                 const data = await res.json();
                 box.innerHTML += `<div class="chat-bubble ai">${data.result.text || "Ответ получен"}</div>`;
@@ -512,6 +556,28 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = "🚀 Сгенерировать";
+            }
+        }
+
+        function copyLink() {
+            const link = document.getElementById('ref-link-input').value;
+            navigator.clipboard.writeText(link);
+            alert("Ссылка скопирована!");
+        }
+
+        function shareLink() {
+            const link = document.getElementById('ref-link-input').value;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=Попробуй Hydra AI Studio!`);
+        }
+
+        // Данные Telegram
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const u = tg.initDataUnsafe.user;
+            document.getElementById('u-name').innerText = u.first_name + (u.username ? ` (@${u.username})` : '');
+            document.getElementById('u-id').innerText = `ID: ${u.id}`;
+            document.getElementById('ref-link-input').value = `https://t.me/HydraAIBot?start=ref${u.id}`;
+            if (u.photo_url) {
+                document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
             }
         }
     </script>
