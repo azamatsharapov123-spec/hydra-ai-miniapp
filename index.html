@@ -598,7 +598,6 @@
 
         let activeCategory = 'image';
 
-        // 10 ТОКЕНОВ ПРИ ПЕРВОЙ РЕГИСТРАЦИИ
         let userCoins = localStorage.getItem('hydra_user_coins');
         if (userCoins === null) {
             userCoins = 10;
@@ -720,6 +719,7 @@
             recalculateCost();
         }
 
+        // ИСПРАВЛЕННЫЙ ТОЧНЫЙ РАСЧЕТ СТОИМОСТИ БЕЗ ДВОЙНОГО УМНОЖЕНИЯ
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
             if (!select.options.length) return;
@@ -732,13 +732,17 @@
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 const quality = document.getElementById('vid-quality').value;
 
-                let qualityBase = baseCost;
+                let qualityBase = 28; // 480p по умолчанию
                 if (quality === '720p') {
-                    qualityBase = Math.round(baseCost * 2.25);
-                } else if (quality === '1080p') {
-                    qualityBase = Math.round(baseCost * 5.64);
-                } else if (quality === '4k') {
-                    qualityBase = Math.round(baseCost * 8.5);
+                    qualityBase = 63;
+                } else if (quality === '1080p' || quality === '1080p Full HD') {
+                    qualityBase = 158;
+                } else if (quality === '4k' || quality === '4K Ultra HD') {
+                    qualityBase = 238;
+                }
+
+                if (baseCost !== 28) {
+                    qualityBase = Math.round(baseCost * (qualityBase / 28));
                 }
 
                 let durationRatio = duration / 5;
