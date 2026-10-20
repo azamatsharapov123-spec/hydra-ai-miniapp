@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     end_image_url,
     aspect_ratio,
     duration,
+    quality,
     enable_audio,
     voice
   } = req.body;
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. Полная карта эндпоинтов Fal.ai
+  // 2. Полная карта эндпоинтов Fal.ai (Без VeoSeeBot Remake)
   const endpoints = {
     // Картинки
     'nanobanana-pro': 'https://fal.run/fal-ai/nano-banana-pro',
@@ -66,7 +67,6 @@ export default async function handler(req, res) {
 
     // Видео
     'seedance-2.5': 'https://fal.run/fal-ai/bytedance/seedance-2.5/image-to-video',
-    'veoseebot-remake': 'https://fal.run/fal-ai/veoseebot-remake',
     'gemini-omni': 'https://fal.run/fal-ai/gemini-omni',
     'gemini-omni-1.1': 'https://fal.run/fal-ai/gemini-omni-1.1',
     'veo-3.1': 'https://fal.run/fal-ai/veo-3.1',
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
 
   const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
 
-  // 3. Динамическая сборка полезной нагрузки (Payload)
+  // 3. Формирование тела запроса (Payload) для Fal.ai
   const payload = { prompt };
 
   if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
@@ -118,9 +118,38 @@ export default async function handler(req, res) {
   if (start_image_url) payload.start_image_url = start_image_url;
   if (end_image_url) payload.end_image_url = end_image_url;
   if (duration) payload.duration = parseInt(duration, 10);
+  if (quality) payload.quality = quality;
   if (typeof enable_audio === 'boolean') payload.enable_audio = enable_audio;
   if (voice) payload.voice = voice;
 
   try {
     const response = await fetch(targetEndpoint, {
       method: 'POST',
+      headers: {
+        'Authorization': `Key ${FAL_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || data.message || 'Ошибка API генерации Fal.ai');
+    }
+
+    const mediaUrl =
+      data.images?.[0]?.url ||
+      data.video?.url ||
+      data.audio_url?.url ||
+      data.audio?.url ||
+      data.url;
+
+    return res.status(200).json({
+      success: true,
+      result: { url: mediaUrl }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
