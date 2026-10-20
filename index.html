@@ -145,7 +145,7 @@
             margin-bottom: 20px;
             text-align: center;
         }
-        .result-box video {
+        .result-box img {
             width: 100%;
             border-radius: 12px;
             margin-top: 10px;
@@ -216,18 +216,18 @@
 
     <div class="promo-banner">
         <div class="promo-text">
-            <h3>Seedance 2.5 Pro</h3>
-            <p>Создавай кинематографичные ролики</p>
+            <h3>FLUX.1 Schnell</h3>
+            <p>Мгновенная генерация гиперреалистичных фото</p>
         </div>
-        <button class="promo-btn" onclick="setPrompt('Cinematic hyper-realistic shot, dramatic lighting')">Попробовать</button>
+        <button class="promo-btn" onclick="setPrompt('Cyberpunk fashion runway model, futuristic clothes, neon lights')">Попробовать</button>
     </div>
 
     <div class="categories">
-        <div class="cat-item" onclick="selectCategory('image')">
+        <div class="cat-item" onclick="selectCategory('image')" style="border-color: var(--accent-color);">
             <div class="cat-icon">🖼</div>
             <div class="cat-name">Картинка</div>
         </div>
-        <div class="cat-item" onclick="selectCategory('video')" style="border-color: var(--accent-color);">
+        <div class="cat-item" onclick="selectCategory('video')">
             <div class="cat-icon">🎥</div>
             <div class="cat-name">Видео</div>
         </div>
@@ -246,25 +246,19 @@
     </div>
 
     <div class="generator-box">
-        <div class="section-title" id="gen-title">🎥 Генерация видео (Seedance)</div>
+        <div class="section-title" id="gen-title">🖼 Генерация изображений (FLUX)</div>
         
-        <label for="prompt">Промпт / Описание сюжета:</label>
-        <textarea id="prompt" rows="3" placeholder="Fast paced artistic showcase, fashion model..."></textarea>
-        
-        <label for="resolution">Разрешение и качество:</label>
-        <select id="resolution">
-            <option value="720p">720p с аудио (Экономно)</option>
-            <option value="1080p">1080p Full HD с аудио (Максимальное)</option>
-        </select>
+        <label for="prompt">Промпт / Описание изображения:</label>
+        <textarea id="prompt" rows="3" placeholder="A futuristic neon cyberpunk cat, highly detailed..."></textarea>
 
-        <button class="generate-btn" id="gen-btn" onclick="generateVideo()">🚀 Сгенерировать (-120 монет)</button>
-        <div class="status-msg" id="status-msg">⏳ Генерация запущена... Пожалуйста, подождите (около 30-60 сек)</div>
+        <button class="generate-btn" id="gen-btn" onclick="generateImage()">🚀 Сгенерировать (-10 монет)</button>
+        <div class="status-msg" id="status-msg">⏳ Генерация изображения... Пожалуйста, подождите (5-10 сек)</div>
     </div>
 
-    <!-- Контейнер для отображения готового видео -->
+    <!-- Контейнер для отображения готовой картинки -->
     <div class="result-box" id="result-box">
         <div class="section-title">✨ Готовый результат:</div>
-        <video id="video-result" controls autoplay loop></video>
+        <img id="image-result" alt="Generated Image">
     </div>
 
     <div class="section-title">🔥 Популярные тренды</div>
@@ -326,20 +320,18 @@
             alert("Пополнение баланса скоро появится!");
         }
 
-        async function generateVideo() {
+        async function generateImage() {
             const prompt = document.getElementById('prompt').value;
-            const resolution = document.getElementById('resolution').value;
             const btn = document.getElementById('gen-btn');
             const statusMsg = document.getElementById('status-msg');
             const resultBox = document.getElementById('result-box');
-            const videoElem = document.getElementById('video-result');
+            const imgElem = document.getElementById('image-result');
 
             if (!prompt) {
                 alert("Пожалуйста, введите текстовый промпт!");
                 return;
             }
 
-            // Блокируем кнопку и показываем статус
             btn.disabled = true;
             btn.innerText = "⏳ Генерация...";
             statusMsg.style.display = "block";
@@ -349,30 +341,29 @@
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, resolution })
+                    body: JSON.stringify({ prompt })
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Извлекаем URL сгенерированного видео из ответа Fal.ai
-                    const videoUrl = data.result.video?.url || data.result.video_url || (data.result.images && data.result.images[0]?.url);
+                    const imageUrl = data.result.video?.url;
                     
-                    if (videoUrl) {
-                        videoElem.src = videoUrl;
+                    if (imageUrl) {
+                        imgElem.src = imageUrl;
                         resultBox.style.display = "block";
                         resultBox.scrollIntoView({ behavior: 'smooth' });
                     } else {
-                        alert("Видео сгенерировано, но URL не найден в ответе.");
+                        alert("Картинка сгенерирована, но URL не найден.");
                     }
                 } else {
-                    alert("Ошибка: " + (data.error || "Не удалось сгенерировать видео"));
+                    alert("Ошибка: " + (data.error || "Не удалось сгенерировать"));
                 }
             } catch (err) {
                 alert("Ошибка сети или сервера: " + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerText = "🚀 Сгенерировать (-120 монет)";
+                btn.innerText = "🚀 Сгенерировать (-10 монет)";
                 statusMsg.style.display = "none";
             }
         }
