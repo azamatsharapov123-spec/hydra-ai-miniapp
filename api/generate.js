@@ -16,7 +16,9 @@ export default async function handler(req, res) {
     format,
     websearch,
     enable_audio,
-    voice
+    voice,
+    cost,
+    user_coins_client
   } = req.body;
 
   const FAL_KEY = process.env.FAL_KEY;
@@ -25,7 +27,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'FAL_KEY не настроен в переменном окружении Vercel' });
   }
 
-  // 1. Бесплатный AI Чат (Gemini Flash)
+  // 1. Проверка баланса перед генерацией
+  const generationCost = parseInt(cost, 10) || 5;
+  let currentBalance = parseInt(user_coins_client, 10);
+
+  if (isNaN(currentBalance) || currentBalance < generationCost) {
+    return res.status(400).json({ error: 'Недостаточно токенов на балансе для генерации' });
+  }
+
+  // Списываем токены
+  currentBalance -= generationCost;
+
+  // 2. Бесплатный AI Чат (Gemini Flash)
   if (category === 'chat') {
     try {
       const response = await fetch('https://fal.run/fal-ai/any-llm', {
@@ -42,13 +55,13 @@ export default async function handler(req, res) {
 
       const data = await response.json();
       const text = data.output || data.choices?.[0]?.message?.content || 'Здравствуйте! Чем я могу помочь?';
-      return res.status(200).json({ success: true, result: { text } });
+      return res.status(200).json({ success: true, new_balance: currentBalance, result: { text } });
     } catch (e) {
       return res.status(500).json({ error: 'Ошибка обработки чата' });
     }
   }
 
-  // 2. Полная карта эндпоинтов Fal.ai
+  // 3. Полная карта эндпоинтов Fal.ai
   const endpoints = {
     // Картинки
     'nanobanana-pro': 'https://fal.run/fal-ai/nano-banana-pro',
@@ -112,7 +125,7 @@ export default async function handler(req, res) {
 
   const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
 
-  // 3. Формирование тела запроса (Payload)
+  // 4. Формирование тела запроса (Payload) для Fal.ai
   const payload = { prompt };
 
   if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
@@ -151,9 +164,11 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      new_balance: currentBalance,
       result: { url: mediaUrl }
     });
   } catch (error) {
+    // Если на стороне Fal.ai произошла ошибка после списания, в продакшене здесь можно вернуть токены пользователю.
     return res.status(500).json({ error: error.message });
   }
 }
