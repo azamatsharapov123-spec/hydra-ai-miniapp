@@ -97,10 +97,36 @@
         }
         textarea:focus, select:focus { border-color: var(--accent-color); }
         
+        /* Блок видео настроек */
         .video-params {
             display: none;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 14px;
+            background: #09090b;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .duration-val {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--accent-color);
+            min-width: 55px;
+            text-align: right;
         }
 
         .generate-btn {
@@ -181,7 +207,7 @@
         </div>
     </div>
 
-    <!-- Категории генераторов -->
+    <!-- Категории -->
     <div class="categories">
         <div class="cat-item active" id="cat-image" onclick="selectCategory('image')">
             <div class="cat-icon">🖼</div>
@@ -204,34 +230,33 @@
     <div class="generator-box">
         <div class="section-title" id="gen-title">🖼 Генерация изображений</div>
         
-        <!-- Выбор нейросети -->
         <label for="model-select">Выберите нейросеть:</label>
-        <select id="model-select" onchange="updatePrice()"></select>
+        <select id="model-select" onchange="onModelChange()"></select>
 
-        <!-- Настройки видео (появляются только для категории видео) -->
+        <!-- Настройки видео -->
         <div class="video-params" id="video-params">
             <div>
-                <label for="video-res">Разрешение:</label>
-                <select id="video-res" onchange="updatePrice()">
-                    <option value="720p">720p (HD)</option>
-                    <option value="1080p">1080p (Full HD)</option>
+                <label for="video-res">Разрешение видео:</label>
+                <select id="video-res" onchange="updatePrice()" style="margin-bottom:0;">
+                    <option value="480p">480p (SD — Эконом)</option>
+                    <option value="720p" selected>720p (HD — Стандарт)</option>
+                    <option value="1080p">1080p (Full HD — Макс.)</option>
                 </select>
             </div>
             <div>
-                <label for="video-dur">Длительность:</label>
-                <select id="video-dur" onchange="updatePrice()">
-                    <option value="5">5 секунд</option>
-                    <option value="10">10 секунд</option>
-                    <option value="15">15 секунд</option>
-                </select>
+                <label>Длительность видео:</label>
+                <div class="slider-container">
+                    <input type="range" id="video-dur" min="1" max="30" value="5" oninput="updatePrice()">
+                    <span class="duration-val" id="dur-val">5 сек</span>
+                </div>
             </div>
         </div>
 
-        <label for="prompt">Запрос (промпт):</label>
+        <label for="prompt" id="prompt-label">Описание запроса:</label>
         <textarea id="prompt" rows="3" placeholder="Опишите, что вы хотите сгенерировать..."></textarea>
 
         <button class="generate-btn" id="gen-btn" onclick="generateMedia()">🚀 Сгенерировать</button>
-        <div class="status-msg" id="status-msg">⏳ Идет генерация... Это может занять время.</div>
+        <div class="status-msg" id="status-msg">⏳ Идет обработка запроса... Пожалуйста, подождите.</div>
     </div>
 
     <!-- Результат -->
@@ -255,26 +280,42 @@
 
         let currentCategory = 'image';
 
-        const modelsData = {
-            image: [
-                { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстро)', basePrice: 10 },
-                { id: 'flux-pro', name: 'FLUX 1.1 Pro (Макс. качество)', basePrice: 25 },
-                { id: 'recraft-v3', name: 'Recraft V3 (Дизайн и лого)', basePrice: 20 },
-                { id: 'ideogram-v2', name: 'Ideogram v2 (Текст на картинках)', basePrice: 30 }
-            ],
-            video: [
-                { id: 'seedance-2.5', name: 'Bytedance Seedance 2.5 (С аудио)', basePrice: 60 },
-                { id: 'kling-1.5', name: 'Kling 1.5 Motion Pro', basePrice: 50 },
-                { id: 'wan-2.1', name: 'Wan 2.1 Fast Video', basePrice: 40 }
-            ],
-            audio: [
-                { id: 'suno-v4', name: 'Suno v4 (Музыка и песни)', basePrice: 30 },
-                { id: 'elevenlabs', name: 'ElevenLabs (Озвучка текста)', basePrice: 15 }
-            ],
-            chat: [
-                { id: 'gpt-4o', name: 'ChatGPT 4o (Умный ассистент)', basePrice: 5 },
-                { id: 'claude-sonnet', name: 'Claude 3.5 Sonnet (Код и тексты)', basePrice: 5 }
-            ]
+        const categoryMeta = {
+            image: {
+                title: '🖼 Генерация изображений',
+                placeholder: 'Опишите желаемое изображение в деталях...',
+                models: [
+                    { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстро)', basePrice: 10 },
+                    { id: 'flux-pro', name: 'FLUX 1.1 Pro (Макс. качество)', basePrice: 25 },
+                    { id: 'recraft-v3', name: 'Recraft V3 (Дизайн и лого)', basePrice: 20 },
+                    { id: 'ideogram-v2', name: 'Ideogram v2 (Текст на картинках)', basePrice: 30 }
+                ]
+            },
+            video: {
+                title: '🎥 Генерация видео',
+                placeholder: 'Опишите сюжет, персонажей и движение камеры в видео...',
+                models: [
+                    { id: 'kling-3.0', name: 'Kling 3.0 Pro (До 15 сек, Native 4K/HD)', basePrice: 12, maxDuration: 15 },
+                    { id: 'wan-3.0', name: 'Wan 3.0 Ultra (До 30 сек)', basePrice: 10, maxDuration: 30 },
+                    { id: 'seedance-2.5', name: 'Bytedance Seedance 2.5 (До 30 сек с аудио)', basePrice: 8, maxDuration: 30 }
+                ]
+            },
+            audio: {
+                title: '🎵 Генерация музыки и звуков',
+                placeholder: 'Опишите жанр, инструменты, настроение или введите текст...',
+                models: [
+                    { id: 'suno-v4', name: 'Suno v4 (Музыка и песни)', basePrice: 30 },
+                    { id: 'elevenlabs', name: 'ElevenLabs (Озвучка текста)', basePrice: 15 }
+                ]
+            },
+            chat: {
+                title: '💬 Вопрос ИИ-Ассистенту',
+                placeholder: 'Задайте любой вопрос, попросите написать код или текст...',
+                models: [
+                    { id: 'gpt-4o', name: 'ChatGPT 4o (Умный ассистент)', basePrice: 5 },
+                    { id: 'claude-sonnet', name: 'Claude 3.5 Sonnet (Код и аналитика)', basePrice: 5 }
+                ]
+            }
         };
 
         function selectCategory(cat) {
@@ -283,30 +324,47 @@
             document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`cat-${cat}`).classList.add('active');
 
+            const meta = categoryMeta[cat];
+            document.getElementById('gen-title').innerText = meta.title;
+            document.getElementById('prompt').placeholder = meta.placeholder;
+
             const videoParams = document.getElementById('video-params');
-            if (cat === 'video') {
-                videoParams.style.display = 'grid';
-            } else {
-                videoParams.style.display = 'none';
-            }
+            videoParams.style.display = (cat === 'video') ? 'flex' : 'none';
 
             const select = document.getElementById('model-select');
             select.innerHTML = '';
             
-            modelsData[cat].forEach(model => {
+            meta.models.forEach(model => {
                 const opt = document.createElement('option');
                 opt.value = model.id;
                 opt.innerText = model.name;
                 select.appendChild(opt);
             });
 
+            onModelChange();
+        }
+
+        function onModelChange() {
+            if (currentCategory === 'video') {
+                const selectedModelId = document.getElementById('model-select').value;
+                const modelObj = categoryMeta.video.models.find(m => m.id === selectedModelId);
+                const slider = document.getElementById('video-dur');
+                
+                if (modelObj) {
+                    slider.max = modelObj.maxDuration;
+                    if (parseInt(slider.value) > modelObj.maxDuration) {
+                        slider.value = modelObj.maxDuration;
+                    }
+                }
+            }
             updatePrice();
         }
 
         function updatePrice() {
             const select = document.getElementById('model-select');
             const selectedModelId = select.value;
-            const modelObj = modelsData[currentCategory].find(m => m.id === selectedModelId);
+            const meta = categoryMeta[currentCategory];
+            const modelObj = meta.models.find(m => m.id === selectedModelId);
             
             if (!modelObj) return;
 
@@ -316,11 +374,13 @@
                 const duration = parseInt(document.getElementById('video-dur').value) || 5;
                 const resolution = document.getElementById('video-res').value;
 
-                // Расчет коэффициента цены от длительности и разрешения
-                let mult = (duration / 5);
-                if (resolution === '1080p') mult *= 1.5;
+                document.getElementById('dur-val').innerText = `${duration} сек`;
 
-                finalPrice = Math.round(modelObj.basePrice * mult);
+                let resMult = 1;
+                if (resolution === '480p') resMult = 0.7;
+                if (resolution === '1080p') resMult = 1.5;
+
+                finalPrice = Math.round(modelObj.basePrice * duration * resMult);
             }
 
             document.getElementById('gen-btn').innerText = `🚀 Сгенерировать (-${finalPrice} монет)`;
@@ -339,7 +399,7 @@
             const chatElem = document.getElementById('chat-result');
 
             if (!prompt) {
-                alert("Пожалуйста, введите промпт!");
+                alert("Пожалуйста, введите запрос!");
                 return;
             }
 
