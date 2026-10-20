@@ -49,18 +49,20 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            cursor: pointer;
         }
+        .balance-badge span { color: #facc15; }
 
         .categories {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 20px;
         }
         .cat-item {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 14px;
+            border-radius: 12px;
             padding: 10px 4px;
             text-align: center;
             cursor: pointer;
@@ -70,8 +72,11 @@
             border-color: var(--accent-color);
             background: rgba(139, 92, 246, 0.1);
         }
-        .cat-icon { font-size: 20px; margin-bottom: 4px; }
+        .cat-icon { font-size: 18px; margin-bottom: 2px; }
         .cat-name { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
+
+        .app-section { display: none; }
+        .app-section.active-section { display: block; }
 
         .generator-box {
             background: var(--card-bg);
@@ -82,8 +87,26 @@
         }
         .section-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
         
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .magic-btn {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--accent-color);
+            color: #d8b4fe;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .magic-btn:active { transform: scale(0.95); }
+
         label { font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px; }
-        textarea, select {
+        textarea, select, input[type="text"] {
             width: 100%;
             padding: 12px;
             border-radius: 12px;
@@ -95,10 +118,9 @@
             margin-bottom: 14px;
             outline: none;
         }
-        textarea:focus, select:focus { border-color: var(--accent-color); }
+        textarea:focus, select:focus, input[type="text"]:focus { border-color: var(--accent-color); }
         
-        /* Блок видео настроек */
-        .video-params {
+        .extra-params {
             display: none;
             flex-direction: column;
             gap: 12px;
@@ -176,6 +198,45 @@
             display: none;
         }
 
+        /* История и профиль галерея */
+        .history-list, .gallery-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .history-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .history-item .spent { color: #f87171; font-weight: 700; }
+        .history-item .topup { color: #4ade80; font-weight: 700; }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .gallery-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 8px;
+            text-align: center;
+        }
+        .gallery-card img, .gallery-card video {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
         .nav-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -202,76 +263,119 @@
 
     <div class="header">
         <div class="brand">HYDRA AI ⚡</div>
-        <div class="balance-badge">
-            ⚙ <span id="coins">150</span> монет
+        <div class="balance-badge" onclick="topUpBalance()">
+            ⚙ Баланс: <span id="coins">150</span> монет
         </div>
     </div>
 
-    <!-- Категории -->
-    <div class="categories">
-        <div class="cat-item active" id="cat-image" onclick="selectCategory('image')">
-            <div class="cat-icon">🖼</div>
-            <div class="cat-name">Картинка</div>
-        </div>
-        <div class="cat-item" id="cat-video" onclick="selectCategory('video')">
-            <div class="cat-icon">🎥</div>
-            <div class="cat-name">Видео</div>
-        </div>
-        <div class="cat-item" id="cat-audio" onclick="selectCategory('audio')">
-            <div class="cat-icon">🎵</div>
-            <div class="cat-name">Аудио</div>
-        </div>
-        <div class="cat-item" id="cat-chat" onclick="selectCategory('chat')">
-            <div class="cat-icon">💬</div>
-            <div class="cat-name">Чат AI</div>
-        </div>
-    </div>
-
-    <div class="generator-box">
-        <div class="section-title" id="gen-title">🖼 Генерация изображений</div>
-        
-        <label for="model-select">Выберите нейросеть:</label>
-        <select id="model-select" onchange="onModelChange()"></select>
-
-        <!-- Настройки видео -->
-        <div class="video-params" id="video-params">
-            <div>
-                <label for="video-res">Разрешение видео:</label>
-                <select id="video-res" onchange="updatePrice()" style="margin-bottom:0;">
-                    <option value="480p">480p (SD — Эконом)</option>
-                    <option value="720p" selected>720p (HD — Стандарт)</option>
-                    <option value="1080p">1080p (Full HD — Макс.)</option>
-                </select>
+    <!-- СЕКЦИЯ 1: ГЛАВНАЯ (Генератор) -->
+    <div id="section-home" class="app-section active-section">
+        <div class="categories" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="cat-item active" id="cat-image" onclick="selectCategory('image')">
+                <div class="cat-icon">🖼</div>
+                <div class="cat-name">Картинка</div>
             </div>
-            <div>
-                <label>Длительность видео:</label>
-                <div class="slider-container">
-                    <input type="range" id="video-dur" min="1" max="30" value="5" oninput="updatePrice()">
-                    <span class="duration-val" id="dur-val">5 сек</span>
+            <div class="cat-item" id="cat-video" onclick="selectCategory('video')">
+                <div class="cat-icon">🎥</div>
+                <div class="cat-name">Видео</div>
+            </div>
+            <div class="cat-item" id="cat-threed" onclick="selectCategory('threed')">
+                <div class="cat-icon">🧊</div>
+                <div class="cat-name">3D Модели</div>
+            </div>
+            <div class="cat-item" id="cat-avatar" onclick="selectCategory('avatar')">
+                <div class="cat-icon">👤</div>
+                <div class="cat-name">Аватары</div>
+            </div>
+            <div class="cat-item" id="cat-audio" onclick="selectCategory('audio')">
+                <div class="cat-icon">🎵</div>
+                <div class="cat-name">Аудио</div>
+            </div>
+            <div class="cat-item" id="cat-chat" onclick="selectCategory('chat')">
+                <div class="cat-icon">💬</div>
+                <div class="cat-name">Чат AI</div>
+            </div>
+        </div>
+
+        <div class="generator-box">
+            <div class="section-title" id="gen-title">🖼 Генерация изображений</div>
+            
+            <label for="model-select">Выберите нейросеть:</label>
+            <select id="model-select" onchange="onModelChange()"></select>
+
+            <div class="video-params" id="video-params">
+                <div>
+                    <label for="video-res">Разрешение видео:</label>
+                    <select id="video-res" onchange="updatePrice()" style="margin-bottom:0;">
+                        <option value="480p">480p (SD — Эконом)</option>
+                        <option value="720p" selected>720p (HD — Стандарт)</option>
+                        <option value="1080p">1080p (Full HD)</option>
+                        <option value="4k">4K (Ultra HD — Премиум)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Длительность видео:</label>
+                    <div class="slider-container">
+                        <input type="range" id="video-dur" min="1" max="30" value="5" oninput="updatePrice()">
+                        <span class="duration-val" id="dur-val">5 сек</span>
+                    </div>
                 </div>
             </div>
+
+            <div class="extra-params" id="ref-params" style="display:flex;">
+                <label for="ref-url" id="ref-label">🔗 Ссылка на референс (опционально):</label>
+                <input type="text" id="ref-url" placeholder="https://example.com/image.jpg" style="margin-bottom:0;">
+            </div>
+
+            <div class="prompt-header">
+                <label for="prompt" id="prompt-label" style="margin-bottom:0;">Описание запроса:</label>
+                <button class="magic-btn" onclick="enhancePrompt()">✨ Улучшить ИИ</button>
+            </div>
+            <textarea id="prompt" rows="3" placeholder="Опишите, что вы хотите сгенерировать..." style="margin-top:6px;"></textarea>
+
+            <button class="generate-btn" id="gen-btn" onclick="generateMedia()">🚀 Сгенерировать</button>
+            <div class="status-msg" id="status-msg">⏳ Идет обработка запроса... Пожалуйста, подождите.</div>
         </div>
 
-        <label for="prompt" id="prompt-label">Описание запроса:</label>
-        <textarea id="prompt" rows="3" placeholder="Опишите, что вы хотите сгенерировать..."></textarea>
-
-        <button class="generate-btn" id="gen-btn" onclick="generateMedia()">🚀 Сгенерировать</button>
-        <div class="status-msg" id="status-msg">⏳ Идет обработка запроса... Пожалуйста, подождите.</div>
+        <div class="result-box" id="result-box">
+            <div class="section-title">✨ Готовый результат:</div>
+            <img id="image-result" style="display:none;" />
+            <video id="video-result" controls autoplay loop style="display:none;"></video>
+            <audio id="audio-result" controls style="display:none;"></audio>
+            <div id="chat-result" class="chat-result-text" style="display:none;"></div>
+        </div>
     </div>
 
-    <!-- Результат -->
-    <div class="result-box" id="result-box">
-        <div class="section-title">✨ Готовый результат:</div>
-        <img id="image-result" style="display:none;" />
-        <video id="video-result" controls autoplay loop style="display:none;"></video>
-        <audio id="audio-result" controls style="display:none;"></audio>
-        <div id="chat-result" class="chat-result-text" style="display:none;"></div>
+    <!-- СЕКЦИЯ 2: ИСТОРИЯ ТРАЗАКЦИЙ -->
+    <div id="section-history" class="app-section">
+        <div class="section-title">📂 История операций</div>
+        <div class="history-list" id="history-container">
+            <div class="history-item">
+                <span>🎁 Стартовый бонус</span>
+                <span class="topup">+150 монет</span>
+            </div>
+        </div>
     </div>
 
+    <!-- СЕКЦИЯ 3: ПРОФИЛЬ / ГАЛЕРЕЯ -->
+    <div id="section-profile" class="app-section">
+        <div class="section-title">👤 Мои работы (Галерея)</div>
+        <div class="gallery-grid" id="gallery-container">
+            <p style="color:var(--text-secondary); grid-column: span 2; text-align: center;">Здесь будут появляться ваши созданные генерации.</p>
+        </div>
+    </div>
+
+    <!-- Нижняя навигация -->
     <div class="nav-bar">
-        <div class="nav-item active"><div class="nav-icon">🏠</div>Главная</div>
-        <div class="nav-item" onclick="alert('История генераций')"><div class="nav-icon">📂</div>История</div>
-        <div class="nav-item" onclick="alert('Баланс: 150 монет')"><div class="nav-icon">👤</div>Профиль</div>
+        <div class="nav-item active" id="nav-home" onclick="switchSection('home')">
+            <div class="nav-icon">🏠</div>Главная
+        </div>
+        <div class="nav-item" id="nav-history" onclick="switchSection('history')">
+            <div class="nav-icon">📂</div>История
+        </div>
+        <div class="nav-item" id="nav-profile" onclick="switchSection('profile')">
+            <div class="nav-icon">👤</div>Профиль
+        </div>
     </div>
 
     <script>
@@ -279,48 +383,84 @@
         tg.expand();
 
         let currentCategory = 'image';
+        let userCoins = 150;
+        let historyLog = [{ text: '🎁 Стартовый бонус', type: 'topup', amount: 150 }];
+        let myGallery = [];
 
         const categoryMeta = {
             image: {
                 title: '🖼 Генерация изображений',
                 placeholder: 'Опишите желаемое изображение в деталях...',
+                showRef: true,
+                refLabel: '🔗 Референс-картинка (Style / Img2Img):',
                 models: [
                     { id: 'flux-schnell', name: 'FLUX 1.1 Schnell (Быстро)', basePrice: 10 },
                     { id: 'flux-pro', name: 'FLUX 1.1 Pro (Макс. качество)', basePrice: 25 },
-                    { id: 'recraft-v3', name: 'Recraft V3 (Дизайн и лого)', basePrice: 20 },
-                    { id: 'ideogram-v2', name: 'Ideogram v2 (Текст на картинках)', basePrice: 30 }
+                    { id: 'recraft-v3', name: 'Recraft V3 (Дизайн и вектор)', basePrice: 20 },
+                    { id: 'ideogram-v2', name: 'Ideogram v2 (Точный текст)', basePrice: 30 }
                 ]
             },
             video: {
                 title: '🎥 Генерация видео',
-                placeholder: 'Опишите сюжет, персонажей и движение камеры в видео...',
+                placeholder: 'Опишите сюжет и движение камеры...',
+                showRef: true,
+                refLabel: '🔗 Стартовое фото (Image-to-Video):',
                 models: [
-                    { id: 'kling-3.0', name: 'Kling 3.0 Pro (До 15 сек, Native 4K/HD)', basePrice: 12, maxDuration: 15 },
+                    { id: 'kling-3.0', name: 'Kling 3.0 Pro (До 15 сек, 4K)', basePrice: 12, maxDuration: 15 },
                     { id: 'wan-3.0', name: 'Wan 3.0 Ultra (До 30 сек)', basePrice: 10, maxDuration: 30 },
-                    { id: 'seedance-2.5', name: 'Bytedance Seedance 2.5 (До 30 сек с аудио)', basePrice: 8, maxDuration: 30 }
+                    { id: 'seedance-2.5', name: 'Bytedance Seedance 2.5 (С аудио)', basePrice: 8, maxDuration: 30 }
+                ]
+            },
+            threed: {
+                title: '🧊 3D Моделирование',
+                placeholder: 'Опишите объект для создания 3D модели...',
+                showRef: true,
+                refLabel: '🔗 Картинка объекта для 3D:',
+                models: [
+                    { id: 'trellis-2', name: 'Trellis 2 (3D генератор)', basePrice: 40 },
+                    { id: 'hunyuan-3d', name: 'Hunyuan 3D Pro', basePrice: 45 }
+                ]
+            },
+            avatar: {
+                title: '👤 Создание аватаров',
+                placeholder: 'Введите текст, который должен произнести аватар...',
+                showRef: true,
+                refLabel: '🔗 Фото лица/аватара:',
+                models: [
+                    { id: 'multi-talk', name: 'MultiTalk Avatar (Лип-синк)', basePrice: 35 },
+                    { id: 'live-portrait', name: 'LivePortrait (Оживление)', basePrice: 25 }
                 ]
             },
             audio: {
                 title: '🎵 Генерация музыки и звуков',
-                placeholder: 'Опишите жанр, инструменты, настроение или введите текст...',
+                placeholder: 'Опишите жанр песни или текст для озвучки...',
+                showRef: false,
                 models: [
                     { id: 'suno-v4', name: 'Suno v4 (Музыка и песни)', basePrice: 30 },
-                    { id: 'elevenlabs', name: 'ElevenLabs (Озвучка текста)', basePrice: 15 }
+                    { id: 'elevenlabs', name: 'ElevenLabs (Озвучка)', basePrice: 15 }
                 ]
             },
             chat: {
                 title: '💬 Вопрос ИИ-Ассистенту',
-                placeholder: 'Задайте любой вопрос, попросите написать код или текст...',
+                placeholder: 'Задайте любой вопрос или задачу...',
+                showRef: false,
                 models: [
-                    { id: 'gpt-4o', name: 'ChatGPT 4o (Умный ассистент)', basePrice: 5 },
-                    { id: 'claude-sonnet', name: 'Claude 3.5 Sonnet (Код и аналитика)', basePrice: 5 }
+                    { id: 'gpt-4o', name: 'ChatGPT 4o', basePrice: 5 },
+                    { id: 'claude-sonnet', name: 'Claude 3.5 Sonnet', basePrice: 5 }
                 ]
             }
         };
 
+        function switchSection(sectionId) {
+            document.querySelectorAll('.app-section').forEach(el => el.classList.remove('active-section'));
+            document.getElementById(`section-${sectionId}`).classList.add('active-section');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${sectionId}`).classList.add('active');
+        }
+
         function selectCategory(cat) {
             currentCategory = cat;
-            
             document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`cat-${cat}`).classList.add('active');
 
@@ -328,12 +468,17 @@
             document.getElementById('gen-title').innerText = meta.title;
             document.getElementById('prompt').placeholder = meta.placeholder;
 
-            const videoParams = document.getElementById('video-params');
-            videoParams.style.display = (cat === 'video') ? 'flex' : 'none';
+            document.getElementById('video-params').style.display = (cat === 'video') ? 'flex' : 'none';
+            const refParams = document.getElementById('ref-params');
+            if (meta.showRef) {
+                refParams.style.display = 'flex';
+                document.getElementById('ref-label').innerText = meta.refLabel;
+            } else {
+                refParams.style.display = 'none';
+            }
 
             const select = document.getElementById('model-select');
             select.innerHTML = '';
-            
             meta.models.forEach(model => {
                 const opt = document.createElement('option');
                 opt.value = model.id;
@@ -349,46 +494,108 @@
                 const selectedModelId = document.getElementById('model-select').value;
                 const modelObj = categoryMeta.video.models.find(m => m.id === selectedModelId);
                 const slider = document.getElementById('video-dur');
+                const resSelect = document.getElementById('video-res');
                 
                 if (modelObj) {
                     slider.max = modelObj.maxDuration;
-                    if (parseInt(slider.value) > modelObj.maxDuration) {
-                        slider.value = modelObj.maxDuration;
+                    if (parseInt(slider.value) > modelObj.maxDuration) slider.value = modelObj.maxDuration;
+
+                    if (selectedModelId === 'kling-3.0') {
+                        resSelect.innerHTML = `<option value="480p">480p</option><option value="720p">720p</option><option value="1080p" selected>1080p</option><option value="4k">4K Ultra</option>`;
+                    } else {
+                        if (resSelect.value === '4k') resSelect.value = '1080p';
+                        resSelect.innerHTML = `<option value="480p">480p</option><option value="720p" selected>720p</option><option value="1080p">1080p</option>`;
                     }
                 }
             }
             updatePrice();
         }
 
-        function updatePrice() {
+        function getCurrentPrice() {
             const select = document.getElementById('model-select');
-            const selectedModelId = select.value;
             const meta = categoryMeta[currentCategory];
-            const modelObj = meta.models.find(m => m.id === selectedModelId);
-            
-            if (!modelObj) return;
+            const modelObj = meta.models.find(m => m.id === select.value);
+            if (!modelObj) return 10;
 
-            let finalPrice = modelObj.basePrice;
-
+            let price = modelObj.basePrice;
             if (currentCategory === 'video') {
-                const duration = parseInt(document.getElementById('video-dur').value) || 5;
-                const resolution = document.getElementById('video-res').value;
-
-                document.getElementById('dur-val').innerText = `${duration} сек`;
-
-                let resMult = 1;
-                if (resolution === '480p') resMult = 0.7;
-                if (resolution === '1080p') resMult = 1.5;
-
-                finalPrice = Math.round(modelObj.basePrice * duration * resMult);
+                const dur = parseInt(document.getElementById('video-dur').value) || 5;
+                const res = document.getElementById('video-res').value;
+                let mult = 1;
+                if (res === '480p') mult = 0.7;
+                if (res === '1080p') mult = 1.5;
+                if (res === '4k') mult = 2.2;
+                price = Math.round(modelObj.basePrice * dur * mult);
             }
+            return price;
+        }
 
-            document.getElementById('gen-btn').innerText = `🚀 Сгенерировать (-${finalPrice} монет)`;
+        function updatePrice() {
+            const price = getCurrentPrice();
+            document.getElementById('dur-val').innerText = `${document.getElementById('video-dur').value} сек`;
+            document.getElementById('gen-btn').innerText = `🚀 Сгенерировать (-${price} монет)`;
+        }
+
+        // Автоулучшение промпта через ИИ
+        function enhancePrompt() {
+            const promptBox = document.getElementById('prompt');
+            const val = promptBox.value.trim();
+            if (!val) {
+                alert("Сначала введите базовый текст для улучшения!");
+                return;
+            }
+            promptBox.value = `Cinematic masterwork, ultra-detailed 8k resolution, photorealistic lighting, highly polished: ${val}`;
+        }
+
+        function topUpBalance() {
+            const add = 100;
+            userCoins += add;
+            document.getElementById('coins').innerText = userCoins;
+            historyLog.unshift({ text: '💳 Пополнение баланса', type: 'topup', amount: add });
+            renderHistory();
+            alert(`Баланс успешно пополнен на ${add} монет!`);
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            container.innerHTML = historyLog.map(item => `
+                <div class="history-item">
+                    <span>${item.text}</span>
+                    <span class="${item.type}">${item.type === 'topup' ? '+' : '-'}${item.amount} монет</span>
+                </div>
+            `).join('');
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('gallery-container');
+            if (myGallery.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-secondary); grid-column: span 2; text-align: center;">Здесь пока пусто.</p>`;
+                return;
+            }
+            container.innerHTML = myGallery.map(item => `
+                <div class="gallery-card">
+                    ${item.type === 'video' ? `<video src="${item.url}" controls></video>` : `<img src="${item.url}">`}
+                    <p style="font-size:10px; color:var(--text-secondary); margin:4px 0 0 0;">${item.name}</p>
+                </div>
+            `).join('');
         }
 
         async function generateMedia() {
             const prompt = document.getElementById('prompt').value;
             const model = document.getElementById('model-select').value;
+            const refUrl = document.getElementById('ref-url').value;
+            const price = getCurrentPrice();
+
+            if (userCoins < price) {
+                alert("Недостаточно монет на балансе! Пополните счет.");
+                return;
+            }
+
+            if (!prompt) {
+                alert("Пожалуйста, введите запрос!");
+                return;
+            }
+
             const btn = document.getElementById('gen-btn');
             const statusMsg = document.getElementById('status-msg');
             const resultBox = document.getElementById('result-box');
@@ -397,11 +604,6 @@
             const videoElem = document.getElementById('video-result');
             const audioElem = document.getElementById('audio-result');
             const chatElem = document.getElementById('chat-result');
-
-            if (!prompt) {
-                alert("Пожалуйста, введите запрос!");
-                return;
-            }
 
             btn.disabled = true;
             statusMsg.style.display = "block";
@@ -418,29 +620,33 @@
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        prompt, 
-                        model, 
-                        category: currentCategory,
-                        resolution,
-                        duration
-                    })
+                    body: JSON.stringify({ prompt, model, category: currentCategory, resolution, duration, refUrl })
                 });
 
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    if (currentCategory === 'video') {
-                        videoElem.src = data.result.url;
+                    // АВТОМАТИЧЕСКОЕ СПИСАНИЕ МОНЕТ С БАЛАНСА
+                    userCoins -= price;
+                    document.getElementById('coins').innerText = userCoins;
+                    historyLog.unshift({ text: ` Генерация (${model})`, type: 'spent', amount: price });
+                    renderHistory();
+
+                    const mediaUrl = data.result.url;
+                    myGallery.unshift({ type: currentCategory, url: mediaUrl, name: model });
+                    renderGallery();
+
+                    if (currentCategory === 'video' || currentCategory === 'avatar') {
+                        videoElem.src = mediaUrl;
                         videoElem.style.display = "block";
-                    } else if (currentCategory === 'image') {
-                        imgElem.src = data.result.url;
+                    } else if (currentCategory === 'image' || currentCategory === 'threed') {
+                        imgElem.src = mediaUrl;
                         imgElem.style.display = "block";
                     } else if (currentCategory === 'audio') {
-                        audioElem.src = data.result.url;
+                        audioElem.src = mediaUrl;
                         audioElem.style.display = "block";
                     } else if (currentCategory === 'chat') {
-                        chatElem.innerText = data.result.text || data.result.url;
+                        chatElem.innerText = data.result.text || mediaUrl;
                         chatElem.style.display = "block";
                     }
 
