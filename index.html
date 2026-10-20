@@ -117,7 +117,6 @@
         .empty-history { text-align: center; padding: 50px 10px; }
         .empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.6; }
 
-        /* ИСТОРИЯ СТИЛИ */
         .history-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
         .history-card {
             background: var(--card-bg); border: 1px solid var(--border-color);
@@ -380,6 +379,7 @@
                     <option value="9:16">Вертикальное (9:16)</option>
                     <option value="4:3">Портрет (4:3)</option>
                     <option value="3:4">Альбом (3:4)</option>
+                    <option value="21:9">Ультраширокое (21:9)</option>
                 </select>
 
                 <label>Разрешение:</label>
@@ -394,9 +394,19 @@
             <div id="fields-video" style="display:none;">
                 <label>Соотношение сторон:</label>
                 <select id="vid-aspect">
-                    <option value="16:9">16:9</option>
-                    <option value="9:16">9:16</option>
-                    <option value="1:1">1:1</option>
+                    <option value="16:9">Горизонтальное (16:9)</option>
+                    <option value="9:16">Вертикальное (9:16)</option>
+                    <option value="1:1">Квадрат (1:1)</option>
+                    <option value="4:3">Портрет (4:3)</option>
+                    <option value="3:4">Альбом (3:4)</option>
+                </select>
+
+                <label>Качество видео:</label>
+                <select id="vid-quality" onchange="recalculateCost()">
+                    <option value="480p">480p SD</option>
+                    <option value="720p" selected>720p HD</option>
+                    <option value="1080p">1080p Full HD (+2 ⚡)</option>
+                    <option value="2160p">2160p 4K Ultra HD (+5 ⚡)</option>
                 </select>
 
                 <div id="group-duration">
@@ -450,13 +460,8 @@
         if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
         document.getElementById('coins').innerText = userCoins;
 
-        // ПОЛУЧЕНИЕ ИСТОРИИ ИЗ LOCALSTORAGE
         function getHistoryList() {
-            try {
-                return JSON.parse(localStorage.getItem('hydra_history')) || [];
-            } catch(e) {
-                return [];
-            }
+            try { return JSON.parse(localStorage.getItem('hydra_history')) || []; } catch(e) { return []; }
         }
 
         function saveHistoryItem(item) {
@@ -484,33 +489,33 @@
                 { id: 'gpt-image-2', name: 'GPT Image 2.0', baseCost: 2 }
             ],
             video: [
-                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30, fixed: true },
-                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15, fixed: true },
-                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1', baseCost: 22, maxDur: 15, fixed: true },
-                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10, fixed: true },
-                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 9, maxDur: 10, fixed: true },
-                { id: 'grok-video-1.5', name: 'Grok Video 1.5', baseCost: 15, maxDur: 10, fixed: true },
-                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15, fixed: true },
-                { id: 'kling-3.0-mc', name: 'Kling 3.0 MC', baseCost: 25, maxDur: 15, fixed: true },
-                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10, fixed: true },
-                { id: 'kling-o3', name: 'Kling O3', baseCost: 19, maxDur: 15, fixed: true },
-                { id: 'kling-o1', name: 'Kling O1', baseCost: 16, maxDur: 10, fixed: true },
-                { id: 'kling-v1-avatar', name: 'Kling v1 Avatar Video', baseCost: 14, maxDur: 10, fixed: true },
-                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 MC-K', baseCost: 15, maxDur: 10, fixed: true },
-                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 MC-F', baseCost: 15, maxDur: 10, fixed: true },
-                { id: 'kling-2.6', name: 'Kling 2.6 Standard', baseCost: 12, maxDur: 10, fixed: true },
-                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 8, maxDur: 10, fixed: true },
-                { id: 'kling-2.1', name: 'Kling 2.1 Standard', baseCost: 10, maxDur: 10, fixed: true },
-                { id: 'wan-3.0', name: 'Wan 3.0 High-End', baseCost: 8, maxDur: 10, fixed: true },
-                { id: 'wan-2.6', name: 'Wan 2.6 Fast', baseCost: 6, maxDur: 10, fixed: true },
-                { id: 'wan-2.5', name: 'Wan 2.5 Fast', baseCost: 5, maxDur: 10, fixed: true },
-                { id: 'seedance-2', name: 'Seedance 2.0 Pro', baseCost: 20, maxDur: 15, fixed: true },
-                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 10, maxDur: 10, fixed: true },
-                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15, fixed: true },
-                { id: 'sora-2-pro-f', name: 'Sora 2 Pro Fast', baseCost: 24, maxDur: 15, fixed: true },
-                { id: 'runway', name: 'Runway Gen3 Alpha', baseCost: 6, maxDur: 10, fixed: true },
-                { id: 'topaz', name: 'Topaz Video Upscale', baseCost: 5, maxDur: 10, fixed: true },
-                { id: 'hailuo-02', name: 'Hailuo 02 (Minimax)', baseCost: 10, maxDur: 10, fixed: true }
+                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30 },
+                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15 },
+                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1', baseCost: 22, maxDur: 15 },
+                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10 },
+                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 9, maxDur: 10 },
+                { id: 'grok-video-1.5', name: 'Grok Video 1.5', baseCost: 15, maxDur: 10 },
+                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15 },
+                { id: 'kling-3.0-mc', name: 'Kling 3.0 MC', baseCost: 25, maxDur: 15 },
+                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10 },
+                { id: 'kling-o3', name: 'Kling O3', baseCost: 19, maxDur: 15 },
+                { id: 'kling-o1', name: 'Kling O1', baseCost: 16, maxDur: 10 },
+                { id: 'kling-v1-avatar', name: 'Kling v1 Avatar Video', baseCost: 14, maxDur: 10 },
+                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 MC-K', baseCost: 15, maxDur: 10 },
+                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 MC-F', baseCost: 15, maxDur: 10 },
+                { id: 'kling-2.6', name: 'Kling 2.6 Standard', baseCost: 12, maxDur: 10 },
+                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 8, maxDur: 10 },
+                { id: 'kling-2.1', name: 'Kling 2.1 Standard', baseCost: 10, maxDur: 10 },
+                { id: 'wan-3.0', name: 'Wan 3.0 High-End', baseCost: 8, maxDur: 10 },
+                { id: 'wan-2.6', name: 'Wan 2.6 Fast', baseCost: 6, maxDur: 10 },
+                { id: 'wan-2.5', name: 'Wan 2.5 Fast', baseCost: 5, maxDur: 10 },
+                { id: 'seedance-2', name: 'Seedance 2.0 Pro', baseCost: 20, maxDur: 15 },
+                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 10, maxDur: 10 },
+                { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15 },
+                { id: 'sora-2-pro-f', name: 'Sora 2 Pro Fast', baseCost: 24, maxDur: 15 },
+                { id: 'runway', name: 'Runway Gen3 Alpha', baseCost: 6, maxDur: 10 },
+                { id: 'topaz', name: 'Topaz Video Upscale', baseCost: 5, maxDur: 10 },
+                { id: 'hailuo-02', name: 'Hailuo 02 (Minimax)', baseCost: 10, maxDur: 10 }
             ],
             audio: [
                 { id: 'suno-v5', name: 'Suno V5 Full Track', baseCost: 3 },
@@ -532,10 +537,7 @@
             document.getElementById(`page-${pageId}`).classList.add('active-page');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
-
-            if (pageId === 'history') {
-                renderHistory();
-            }
+            if (pageId === 'history') renderHistory();
         }
 
         function filterHistory(type, btn) {
@@ -545,11 +547,9 @@
             renderHistory();
         }
 
-        // ОТОБРАЖЕНИЕ ИСТОРИИ
         function renderHistory() {
             const container = document.getElementById('history-content');
             const list = getHistoryList();
-            
             const filtered = currentFilter === 'all' ? list : list.filter(i => i.category === currentFilter);
 
             if (!filtered || filtered.length === 0) {
@@ -596,10 +596,12 @@
             document.getElementById('fields-image').style.display = 'none';
             document.getElementById('fields-video').style.display = 'none';
             document.getElementById('fields-audio').style.display = 'none';
+            document.getElementById('fields-avatar').style.display = 'none';
 
             if (cat === 'image') document.getElementById('fields-image').style.display = 'block';
             if (cat === 'video') document.getElementById('fields-video').style.display = 'block';
             if (cat === 'audio') document.getElementById('fields-audio').style.display = 'block';
+            if (cat === 'avatar') document.getElementById('fields-avatar').style.display = 'block';
 
             const select = document.getElementById('modal-model-select');
             select.innerHTML = '';
@@ -608,7 +610,6 @@
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.dataset.baseCost = m.baseCost;
-                if (m.fixed) opt.dataset.fixed = "true";
                 if (m.maxDur) opt.dataset.maxDur = m.maxDur;
                 opt.innerText = `${m.name} — ${m.baseCost} ⚡`;
                 select.appendChild(opt);
@@ -629,18 +630,22 @@
 
         function onModelSelectChange() { recalculateCost(); }
 
+        // ДИНАМИЧЕСКИЙ РАСЧЕТ СТОИМОСТИ (ВИДЕО, ФОТО, КАЧЕСТВО)
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
             if (!select.options.length) return;
             const selectedOpt = select.options[select.selectedIndex];
             let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
-            let isFixed = selectedOpt.dataset.fixed === "true";
             let finalCost = baseCost;
 
-            if (activeCategory === 'video' && !isFixed) {
+            if (activeCategory === 'video') {
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 let costPerSec = baseCost / 5;
                 finalCost = Math.round(costPerSec * duration);
+
+                const quality = document.getElementById('vid-quality').value;
+                if (quality === '1080p') finalCost += 2;
+                if (quality === '2160p') finalCost += 5;
             } else if (activeCategory === 'image') {
                 const res = document.getElementById('img-res').value;
                 if (res === '2k') finalCost += 1;
@@ -704,6 +709,14 @@
                 user_coins_client: userCoins
             };
 
+            if (activeCategory === 'image') {
+                bodyData.aspect_ratio = document.getElementById('img-aspect').value;
+            } else if (activeCategory === 'video') {
+                bodyData.aspect_ratio = document.getElementById('vid-aspect').value;
+                bodyData.duration = document.getElementById('vid-dur').value;
+                bodyData.quality = document.getElementById('vid-quality').value;
+            }
+
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
@@ -712,15 +725,16 @@
                 });
 
                 const data = await res.json();
-                if (res.ok && data.success && data.result?.url) {
+                if (res.ok && data.success) {
                     userCoins = data.new_balance;
                     localStorage.setItem('hydra_user_coins', userCoins);
                     document.getElementById('coins').innerText = userCoins;
 
-                    // СОХРАНЯЕМ В ИСТОРИЮ
+                    const finalMediaUrl = data.result?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500";
+
                     saveHistoryItem({
-                        url: data.result.url,
-                        prompt: prompt,
+                        url: finalMediaUrl,
+                        prompt: prompt || 'Генерация без текста',
                         model: model,
                         category: activeCategory,
                         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -768,7 +782,6 @@
             }
         }
 
-        // Инициализация истории при первом открытии
         renderHistory();
     </script>
 </body>
