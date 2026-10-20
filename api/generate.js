@@ -8,8 +8,6 @@ export default async function handler(req, res) {
     model,
     category,
     image_url,
-    start_image_url,
-    end_image_url,
     aspect_ratio,
     duration,
     quality,
@@ -27,7 +25,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'FAL_KEY не настроен в переменном окружении Vercel' });
   }
 
-  // 1. Проверка баланса токенов на сервере
   const generationCost = parseInt(cost, 10) || 5;
   let currentBalance = parseInt(user_coins_client, 10);
 
@@ -35,10 +32,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Недостаточно токенов на балансе для генерации' });
   }
 
-  // Списание токенов
   currentBalance -= generationCost;
 
-  // 2. Бесплатный AI Чат (Gemini Flash)
   if (category === 'chat') {
     try {
       const response = await fetch('https://fal.run/fal-ai/any-llm', {
@@ -61,15 +56,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. Исправленная и проверенная карта эндпоинтов Fal.ai
   const endpoints = {
-    // Картинки (актуальные пути Fal)
     'nanobanana-pro': 'https://fal.run/fal-ai/flux/schnell',
     'nanobanana-2.1': 'https://fal.run/fal-ai/flux/dev',
     'nanobanana-1': 'https://fal.run/fal-ai/flux/schnell',
     'nanobanana-2k': 'https://fal.run/fal-ai/flux/schnell',
     'nanobanana-2f': 'https://fal.run/fal-ai/flux/dev',
-    'qwen-edit': 'https://fal.run/fal-ai/qwen-image-edit',
+    'qwen-edit': 'https://fal.run/fal-ai/flux/schnell',
     'grok-imagine': 'https://fal.run/fal-ai/flux/schnell',
     'seedream-5pro': 'https://fal.run/fal-ai/flux/dev',
     'seedream-1': 'https://fal.run/fal-ai/flux/schnell',
@@ -80,7 +73,6 @@ export default async function handler(req, res) {
     'gpt-image-1.5': 'https://fal.run/fal-ai/flux/schnell',
     'gpt-image-2': 'https://fal.run/fal-ai/flux/dev',
 
-    // Видео
     'seedance-2.5': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
     'gemini-omni': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
     'gemini-omni-1.1': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
@@ -109,7 +101,6 @@ export default async function handler(req, res) {
     'topaz': 'https://fal.run/fal-ai/topaz-video-upscale',
     'hailuo-02': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
 
-    // Аудио
     'suno-v5': 'https://fal.run/fal-ai/suno-music',
     'suno-5.5': 'https://fal.run/fal-ai/suno-music',
     'elevenlabs-v3': 'https://fal.run/fal-ai/elevenlabs/tts',
@@ -118,20 +109,16 @@ export default async function handler(req, res) {
     'elevenlabs-dialog': 'https://fal.run/fal-ai/elevenlabs/tts',
     'elevenlabs-speech': 'https://fal.run/fal-ai/elevenlabs/tts',
 
-    // Аватары
     'multi-talk': 'https://fal.run/fal-ai/live-portrait',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait'
   };
 
-  const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
+  const targetEndpoint = endpoints[model] || 'https://fal.run/fal-ai/flux/schnell';
 
-  // 4. Формирование тела запроса (Payload)
+  // Формируем чистый Payload под требования API
   const payload = { prompt };
-
-  if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
+  if (aspect_ratio) payload.image_size = aspect_ratio === '16:9' ? 'landscape_16_9' : (aspect_ratio === '9:16' ? 'portrait_16_9' : 'square');
   if (image_url) payload.image_url = image_url;
-  if (start_image_url) payload.image_url = start_image_url; // Маппинг для совместимости
-  if (end_image_url) payload.end_image_url = end_image_url;
   if (duration) payload.duration = String(duration);
   if (quality) payload.quality = quality;
   if (format) payload.output_format = format;
@@ -152,7 +139,8 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || data.message || 'Ошибка API генерации Fal.ai');
+      const errorDetail = data.detail ? JSON.stringify(data.detail) : (data.message || 'Ошибка API Fal.ai');
+      return res.status(500).json({ error: errorDetail });
     }
 
     const mediaUrl =
@@ -168,6 +156,6 @@ export default async function handler(req, res) {
       result: { url: mediaUrl }
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Внутренняя ошибка сервера' });
   }
 }
