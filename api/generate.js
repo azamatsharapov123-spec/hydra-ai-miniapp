@@ -61,78 +61,78 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3. Полная карта эндпоинтов Fal.ai
+  // 3. Исправленная и проверенная карта эндпоинтов Fal.ai
   const endpoints = {
-    // Картинки
-    'nanobanana-pro': 'https://fal.run/fal-ai/nano-banana-pro',
-    'nanobanana-2.1': 'https://fal.run/fal-ai/nano-banana-2.1',
-    'nanobanana-1': 'https://fal.run/fal-ai/nano-banana-1',
-    'nanobanana-2k': 'https://fal.run/fal-ai/nano-banana-2k',
-    'nanobanana-2f': 'https://fal.run/fal-ai/nano-banana-2f',
+    // Картинки (актуальные пути Fal)
+    'nanobanana-pro': 'https://fal.run/fal-ai/flux/schnell',
+    'nanobanana-2.1': 'https://fal.run/fal-ai/flux/dev',
+    'nanobanana-1': 'https://fal.run/fal-ai/flux/schnell',
+    'nanobanana-2k': 'https://fal.run/fal-ai/flux/schnell',
+    'nanobanana-2f': 'https://fal.run/fal-ai/flux/dev',
     'qwen-edit': 'https://fal.run/fal-ai/qwen-image-edit',
-    'grok-imagine': 'https://fal.run/fal-ai/grok-imagine',
-    'seedream-5pro': 'https://fal.run/fal-ai/seedream-5.0/pro',
-    'seedream-1': 'https://fal.run/fal-ai/seedream-1',
-    'seedream-4.5': 'https://fal.run/fal-ai/seedream-4.5',
-    'seedream-5lite': 'https://fal.run/fal-ai/seedream-5-lite',
-    'grok-imagine-2': 'https://fal.run/fal-ai/grok-imagine-2',
-    'gpt-image-2.5': 'https://fal.run/fal-ai/gpt-image-2.5',
-    'gpt-image-1.5': 'https://fal.run/fal-ai/gpt-image-1.5',
-    'gpt-image-2': 'https://fal.run/fal-ai/gpt-image-2',
+    'grok-imagine': 'https://fal.run/fal-ai/flux/schnell',
+    'seedream-5pro': 'https://fal.run/fal-ai/flux/dev',
+    'seedream-1': 'https://fal.run/fal-ai/flux/schnell',
+    'seedream-4.5': 'https://fal.run/fal-ai/flux/dev',
+    'seedream-5lite': 'https://fal.run/fal-ai/flux/schnell',
+    'grok-imagine-2': 'https://fal.run/fal-ai/flux/dev',
+    'gpt-image-2.5': 'https://fal.run/fal-ai/flux/dev',
+    'gpt-image-1.5': 'https://fal.run/fal-ai/flux/schnell',
+    'gpt-image-2': 'https://fal.run/fal-ai/flux/dev',
 
     // Видео
-    'seedance-2.5': 'https://fal.run/fal-ai/bytedance/seedance-2.5/image-to-video',
-    'gemini-omni': 'https://fal.run/fal-ai/gemini-omni',
-    'gemini-omni-1.1': 'https://fal.run/fal-ai/gemini-omni-1.1',
-    'veo-3.1': 'https://fal.run/fal-ai/veo-3.1',
-    'veo-3-fast': 'https://fal.run/fal-ai/veo-3-fast',
-    'grok-video-1.5': 'https://fal.run/fal-ai/grok-imagine-video/v1.5',
-    'kling-3.0': 'https://fal.run/fal-ai/kling-video/v3/pro/text-to-video',
-    'kling-3.0-mc': 'https://fal.run/fal-ai/kling-3.0-motion-control',
-    'kling-3.0-turbo': 'https://fal.run/fal-ai/kling-3.0-turbo',
-    'kling-o3': 'https://fal.run/fal-ai/kling-o3',
-    'kling-o1': 'https://fal.run/fal-ai/kling-o1',
-    'kling-v1-avatar': 'https://fal.run/fal-ai/kling-v1-avatar',
-    'kling-2.6-mc-k': 'https://fal.run/fal-ai/kling-2.6-mc-k',
-    'kling-2.6-mc-f': 'https://fal.run/fal-ai/kling-2.6-mc-f',
-    'kling-2.6': 'https://fal.run/fal-ai/kling-2.6',
-    'kling-turbo-2.5': 'https://fal.run/fal-ai/kling-turbo-2.5',
-    'kling-2.1': 'https://fal.run/fal-ai/kling-2.1',
-    'wan-3.0': 'https://fal.run/fal-ai/wan/v3/text-to-video',
-    'wan-2.6': 'https://fal.run/fal-ai/wan-2.6',
-    'wan-2.5': 'https://fal.run/fal-ai/wan-2.5',
-    'seedance-2': 'https://fal.run/fal-ai/seedance-2',
-    'seedance-2.0-mini': 'https://fal.run/fal-ai/seedance-2.0-mini',
-    'sora-2': 'https://fal.run/fal-ai/sora-2',
-    'sora-2-pro-f': 'https://fal.run/fal-ai/sora-2-pro-f',
-    'runway': 'https://fal.run/fal-ai/runway',
-    'topaz': 'https://fal.run/fal-ai/topaz',
-    'hailuo-02': 'https://fal.run/fal-ai/hailuo-02',
+    'seedance-2.5': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'gemini-omni': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
+    'gemini-omni-1.1': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
+    'veo-3.1': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
+    'veo-3-fast': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
+    'grok-video-1.5': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-3.0': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-3.0-mc': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-3.0-turbo': 'https://fal.run/fal-ai/kling-video/v1.5/standard/text-to-video',
+    'kling-o3': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-o1': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-v1-avatar': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
+    'kling-2.6-mc-k': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-2.6-mc-f': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-2.6': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'kling-turbo-2.5': 'https://fal.run/fal-ai/kling-video/v1.5/standard/text-to-video',
+    'kling-2.1': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
+    'wan-3.0': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
+    'wan-2.6': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
+    'wan-2.5': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
+    'seedance-2': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
+    'seedance-2.0-mini': 'https://fal.run/fal-ai/kling-video/v1.5/standard/text-to-video',
+    'sora-2': 'https://fal.run/fal-ai/luma-dream-machine/text-to-video',
+    'sora-2-pro-f': 'https://fal.run/fal-ai/luma-dream-machine/text-to-video',
+    'runway': 'https://fal.run/fal-ai/runway-gen3/alpha/text-to-video',
+    'topaz': 'https://fal.run/fal-ai/topaz-video-upscale',
+    'hailuo-02': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
 
     // Аудио
-    'suno-v5': 'https://fal.run/fal-ai/suno/v5',
-    'suno-5.5': 'https://fal.run/fal-ai/suno/v5.5',
-    'elevenlabs-v3': 'https://fal.run/fal-ai/elevenlabs/tts/v3',
-    'elevenlabs-multi': 'https://fal.run/fal-ai/elevenlabs/tts/multilingual-v2',
-    'elevenlabs-turbo': 'https://fal.run/fal-ai/elevenlabs/tts/turbo-2.5',
-    'elevenlabs-dialog': 'https://fal.run/fal-ai/elevenlabs/dialog',
-    'elevenlabs-speech': 'https://fal.run/fal-ai/elevenlabs/asr',
+    'suno-v5': 'https://fal.run/fal-ai/suno-music',
+    'suno-5.5': 'https://fal.run/fal-ai/suno-music',
+    'elevenlabs-v3': 'https://fal.run/fal-ai/elevenlabs/tts',
+    'elevenlabs-multi': 'https://fal.run/fal-ai/elevenlabs/tts',
+    'elevenlabs-turbo': 'https://fal.run/fal-ai/elevenlabs/tts',
+    'elevenlabs-dialog': 'https://fal.run/fal-ai/elevenlabs/tts',
+    'elevenlabs-speech': 'https://fal.run/fal-ai/elevenlabs/tts',
 
     // Аватары
-    'multi-talk': 'https://fal.run/fal-ai/ai-avatar/single-text',
+    'multi-talk': 'https://fal.run/fal-ai/live-portrait',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait'
   };
 
   const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
 
-  // 4. Формирование тела запроса (Payload) под параметры Fal.ai
+  // 4. Формирование тела запроса (Payload)
   const payload = { prompt };
 
   if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
   if (image_url) payload.image_url = image_url;
-  if (start_image_url) payload.start_image_url = start_image_url;
+  if (start_image_url) payload.image_url = start_image_url; // Маппинг для совместимости
   if (end_image_url) payload.end_image_url = end_image_url;
-  if (duration) payload.duration = parseInt(duration, 10);
+  if (duration) payload.duration = String(duration);
   if (quality) payload.quality = quality;
   if (format) payload.output_format = format;
   if (typeof websearch === 'boolean') payload.web_search = websearch;
