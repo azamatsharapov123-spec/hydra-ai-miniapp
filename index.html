@@ -227,7 +227,7 @@
     <div class="header">
         <div class="brand-logo">⚡ Hydra AI Studio</div>
         <div class="header-actions">
-            <div class="buy-badge" onclick="openShopModal()">КУПИТЬ <span id="coins">100</span> ⚙</div>
+            <div class="buy-badge" onclick="openShopModal()">КУПИТЬ <span id="coins">10</span> ⚙</div>
             <div class="settings-btn" onclick="openShopModal()">⚙</div>
         </div>
     </div>
@@ -433,7 +433,7 @@
         </div>
     </div>
 
-    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ СО ВСЕМИ ПОЛЯМИ -->
+    <!-- ПОЛНОЕ МОДАЛЬНОЕ ОКНО ГЕНЕРАЦИИ СО ВСЕМИ ПОЛЯМИ И ДИНАМИЧЕСКИМ РАСЧЕТОМ -->
     <div class="modal-overlay" id="gen-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -442,7 +442,7 @@
             </div>
 
             <label>Модель нейросети:</label>
-            <select id="modal-model-select" onchange="onModelSelected()"></select>
+            <select id="modal-model-select" onchange="recalculateCost()"></select>
 
             <!-- ПОЛЯ ДЛЯ КАРТИНОК -->
             <div id="fields-image" style="display:none;">
@@ -462,14 +462,14 @@
                 </select>
 
                 <label>Разрешение:</label>
-                <select id="img-res">
+                <select id="img-res" onchange="recalculateCost()">
                     <option value="1k">1K Standard</option>
-                    <option value="2k">2K HD</option>
-                    <option value="4k">4K Ultra HD</option>
+                    <option value="2k">2K HD (+1 ⚙)</option>
+                    <option value="4k">4K Ultra HD (+2 ⚙)</option>
                 </select>
             </div>
 
-            <!-- ПОЛЯ ДЛЯ ВИДЕО -->
+            <!-- ПОЛЯ ДЛЯ ВИДЕО (ДЛИТЕЛЬНОСТЬ ДО 30 СЕК) -->
             <div id="fields-video" style="display:none;">
                 <label>Начальный кадр (обязательно):</label>
                 <div class="upload-box" onclick="document.getElementById('vid-start-file').click()">
@@ -501,17 +501,17 @@
                 </select>
 
                 <label>Качество:</label>
-                <select id="vid-quality">
+                <select id="vid-quality" onchange="recalculateCost()">
                     <option value="480p">480p</option>
-                    <option value="720p">720p HD</option>
-                    <option value="1080p">1080p Full HD</option>
-                    <option value="4k">4K Ultra HD</option>
+                    <option value="720p" selected>720p HD</option>
+                    <option value="1080p">1080p Full HD (x1.2)</option>
+                    <option value="4k">4K Ultra HD (x1.5)</option>
                 </select>
 
                 <label>Длительность (сек):</label>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="range" id="vid-dur" min="4" max="15" value="5" oninput="document.getElementById('dur-val').innerText=this.value+' сек'" style="flex:1;">
-                    <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:45px;">5 сек</span>
+                    <input type="range" id="vid-dur" min="4" max="30" value="5" oninput="onVidDurInput(this.value)" style="flex:1;">
+                    <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
                 </div>
 
                 <div class="toggle-row">
@@ -552,7 +552,7 @@
                 <textarea id="modal-prompt" rows="3" placeholder="Опишите детально ваш запрос..."></textarea>
             </div>
 
-            <div id="token-cost-hint" style="font-size:11px; color:#facc15; margin-top:8px; font-weight:700;">Стоимость генерации: ~4 ⚙</div>
+            <div id="token-cost-hint" style="font-size:12px; color:#facc15; margin-top:10px; font-weight:800; text-align:right;">Стоимость генерации: ~5 ⚙</div>
 
             <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
         </div>
@@ -583,68 +583,75 @@
 
         let activeCategory = 'image';
 
-        // ПОЛНЫЙ СПИСОК ВСЕХ МОДЕЛЕЙ NEUROPLACE
+        // ИНИЦИАЛИЗАЦИЯ НАЧАЛЬНОГО БОНУСНОГО БАЛАНСА (10 ТОКЕНОВ ПРИ РЕГИСТРАЦИИ)
+        let userCoins = localStorage.getItem('hydra_user_coins');
+        if (userCoins === null) {
+            userCoins = 10; // Стартовый приветственный бонус
+            localStorage.setItem('hydra_user_coins', userCoins);
+        }
+        document.getElementById('coins').innerText = userCoins;
+
+        // СПИСОК И БАЗОВАЯ СТОИМОСТЬ МОДЕЛЕЙ
         const sortedModels = {
             image: [
-                { id: 'nanobanana-pro', name: 'NanoBanana Pro — 4 ⚙' },
-                { id: 'nanobanana-2.1', name: 'Nano Banana 2.1 — 2 ⚙' },
-                { id: 'nanobanana-1', name: 'Nano Banana 1 — 1 ⚙' },
-                { id: 'nanobanana-2k', name: 'Nano Banana 2 (K) — 2 ⚙' },
-                { id: 'nanobanana-2f', name: 'Nano Banana 2 (F) — 2 ⚙' },
-                { id: 'qwen-edit', name: 'Qwen Image Edit — 1 ⚙' },
-                { id: 'grok-imagine', name: 'Grok Imagine — 1 ⚙' },
-                { id: 'seedream-5pro', name: 'Seedream 5 Pro — 2 ⚙' },
-                { id: 'seedream-1', name: 'Seedream 1 — 1 ⚙' },
-                { id: 'seedream-4.5', name: 'Seedream 4.5 — 2 ⚙' },
-                { id: 'seedream-5lite', name: 'Seedream 5 Lite — 2 ⚙' },
-                { id: 'grok-imagine-2', name: 'Grok Imagine 2 — 2 ⚙' },
-                { id: 'gpt-image-2.5', name: 'GPT Image 2.5 — 1 ⚙' },
-                { id: 'gpt-image-1.5', name: 'GPT Image 1.5 — 2 ⚙' },
-                { id: 'gpt-image-2', name: 'GPT Image 2 — 2 ⚙' }
+                { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
+                { id: 'nanobanana-2.1', name: 'Nano Banana 2.1', baseCost: 2 },
+                { id: 'nanobanana-1', name: 'Nano Banana 1', baseCost: 1 },
+                { id: 'nanobanana-2k', name: 'Nano Banana 2 (K)', baseCost: 2 },
+                { id: 'nanobanana-2f', name: 'Nano Banana 2 (F)', baseCost: 2 },
+                { id: 'qwen-edit', name: 'Qwen Image Edit', baseCost: 1 },
+                { id: 'grok-imagine', name: 'Grok Imagine', baseCost: 1 },
+                { id: 'seedream-5pro', name: 'Seedream 5 Pro', baseCost: 2 },
+                { id: 'seedream-1', name: 'Seedream 1', baseCost: 1 },
+                { id: 'seedream-4.5', name: 'Seedream 4.5', baseCost: 2 },
+                { id: 'seedream-5lite', name: 'Seedream 5 Lite', baseCost: 2 },
+                { id: 'grok-imagine-2', name: 'Grok Imagine 2', baseCost: 2 },
+                { id: 'gpt-image-2.5', name: 'GPT Image 2.5', baseCost: 1 },
+                { id: 'gpt-image-1.5', name: 'GPT Image 1.5', baseCost: 2 },
+                { id: 'gpt-image-2', name: 'GPT Image 2', baseCost: 2 }
             ],
             video: [
-                { id: 'seedance-2.5', name: 'Seedance 2.5 — 28 ⚙' },
-                { id: 'veoseebot-remake', name: 'VeoSeeBot Remake — 0 ⚙' },
-                { id: 'gemini-omni', name: 'Gemini Omni — 18 ⚙' },
-                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1 Flash — 13 ⚙' },
-                { id: 'veo-3.1', name: 'Veo 3.1 — 12 ⚙' },
-                { id: 'veo-3-fast', name: 'Veo 3 Fast — 10 ⚙' },
-                { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5 — 16 ⚙' },
-                { id: 'kling-3.0', name: 'Kling 3.0 — 20 ⚙' },
-                { id: 'kling-3.0-mc', name: 'Kling 3.0 Motion Control — 8 ⚙' },
-                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo — 11 ⚙' },
-                { id: 'kling-o3', name: 'Kling O3 — 9 ⚙' },
-                { id: 'kling-o1', name: 'Kling O1 — 30 ⚙' },
-                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar — 16 ⚙' },
-                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 Motion Control (K) — 6 ⚙' },
-                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 Motion Control (F) — 10 ⚙' },
-                { id: 'kling-2.6', name: 'Kling 2.6 — 11 ⚙' },
-                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5 — 9 ⚙' },
-                { id: 'kling-2.1', name: 'Kling 2.1 — 5 ⚙' },
-                { id: 'wan-3.0', name: 'Wan 3.0 — 8 ⚙' },
-                { id: 'wan-2.6', name: 'Wan 2.6 — 14 ⚙' },
-                { id: 'wan-2.5', name: 'Wan 2.5 — 12 ⚙' },
-                { id: 'seedance-2', name: 'Seedance 2 — 8 ⚙' },
-                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini — 8 ⚙' },
-                { id: 'sora-2', name: 'Sora 2 — 18 ⚙' },
-                { id: 'sora-2-pro-f', name: 'Sora 2 Pro (F) — 33 ⚙' },
-                { id: 'runway', name: 'Runway — 60 ⚙' },
-                { id: 'topaz', name: 'Topaz — 14 ⚙' },
-                { id: 'hailuo-02', name: 'Hailuo 02 — 6 ⚙' }
+                { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28 },
+                { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18 },
+                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1 Flash', baseCost: 13 },
+                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12 },
+                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 10 },
+                { id: 'grok-video-1.5', name: 'Grok Imagine Video 1.5', baseCost: 16 },
+                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20 },
+                { id: 'kling-3.0-mc', name: 'Kling 3.0 Motion Control', baseCost: 8 },
+                { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11 },
+                { id: 'kling-o3', name: 'Kling O3', baseCost: 9 },
+                { id: 'kling-o1', name: 'Kling O1', baseCost: 30 },
+                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar', baseCost: 16 },
+                { id: 'kling-2.6-mc-k', name: 'Kling 2.6 Motion Control (K)', baseCost: 6 },
+                { id: 'kling-2.6-mc-f', name: 'Kling 2.6 Motion Control (F)', baseCost: 10 },
+                { id: 'kling-2.6', name: 'Kling 2.6', baseCost: 11 },
+                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 9 },
+                { id: 'kling-2.1', name: 'Kling 2.1', baseCost: 5 },
+                { id: 'wan-3.0', name: 'Wan 3.0', baseCost: 8 },
+                { id: 'wan-2.6', name: 'Wan 2.6', baseCost: 14 },
+                { id: 'wan-2.5', name: 'Wan 2.5', baseCost: 12 },
+                { id: 'seedance-2', name: 'Seedance 2', baseCost: 8 },
+                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 8 },
+                { id: 'sora-2', name: 'Sora 2', baseCost: 18 },
+                { id: 'sora-2-pro-f', name: 'Sora 2 Pro (F)', baseCost: 33 },
+                { id: 'runway', name: 'Runway', baseCost: 60 },
+                { id: 'topaz', name: 'Topaz', baseCost: 14 },
+                { id: 'hailuo-02', name: 'Hailuo 02', baseCost: 6 }
             ],
             audio: [
-                { id: 'suno-v5', name: 'Suno V5 Music — 3 ⚙' },
-                { id: 'suno-5.5', name: 'Suno 5.5 Music — 3 ⚙' },
-                { id: 'elevenlabs-v3', name: 'ElevenLabs TTS v3 — 10 ⚙' },
-                { id: 'elevenlabs-multi', name: 'ElevenLabs Multilingual v2 — 10 ⚙' },
-                { id: 'elevenlabs-turbo', name: 'ElevenLabs TTS Турбо 2.5 — 10 ⚙' },
-                { id: 'elevenlabs-dialog', name: 'ElevenLabs Диалог — 10 ⚙' },
-                { id: 'elevenlabs-speech', name: 'ElevenLabs Распознавание речи — 10 ⚙' }
+                { id: 'suno-v5', name: 'Suno V5 Music', baseCost: 3 },
+                { id: 'suno-5.5', name: 'Suno 5.5 Music', baseCost: 3 },
+                { id: 'elevenlabs-v3', name: 'ElevenLabs TTS v3', baseCost: 10 },
+                { id: 'elevenlabs-multi', name: 'ElevenLabs Multilingual v2', baseCost: 10 },
+                { id: 'elevenlabs-turbo', name: 'ElevenLabs TTS Турбо 2.5', baseCost: 10 },
+                { id: 'elevenlabs-dialog', name: 'ElevenLabs Диалог', baseCost: 10 },
+                { id: 'elevenlabs-speech', name: 'ElevenLabs Распознавание речи', baseCost: 10 }
             ],
             avatar: [
-                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar — 16 ⚙' },
-                { id: 'multi-talk', name: 'MultiTalk Avatar Lipsync — 15 ⚙' },
-                { id: 'live-portrait', name: 'LivePortrait Animate — 10 ⚙' }
+                { id: 'kling-v1-avatar', name: 'Kling V1 Avatar', baseCost: 16 },
+                { id: 'multi-talk', name: 'MultiTalk Avatar Lipsync', baseCost: 15 },
+                { id: 'live-portrait', name: 'LivePortrait Animate', baseCost: 10 }
             ]
         };
 
@@ -681,11 +688,12 @@
             list.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.innerText = m.name;
+                opt.dataset.baseCost = m.baseCost;
+                opt.innerText = `${m.name} — ${m.baseCost} ⚙ (база)`;
                 select.appendChild(opt);
             });
 
-            onModelSelected();
+            recalculateCost();
             document.getElementById('gen-modal').style.display = 'block';
         }
 
@@ -693,18 +701,36 @@
         function openShopModal() { document.getElementById('shop-modal').style.display = 'block'; }
         function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
 
-        function buyPackage(priceTJS, tokens) {
-            alert(`Запрос на покупку пакета за ${priceTJS} TJS (${tokens} Кредитов) создан!`);
-            closeShopModal();
+        function onVidDurInput(val) {
+            document.getElementById('dur-val').innerText = val + ' сек';
+            recalculateCost();
         }
 
-        function onModelSelected() {
+        function recalculateCost() {
             const select = document.getElementById('modal-model-select');
-            const text = select.options[select.selectedIndex].text;
-            const match = text.match(/—\s*(\d+)\s*⚙/);
-            if (match) {
-                document.getElementById('token-cost-hint').innerText = `Стоимость генерации: ~${match[1]} ⚙`;
+            if (!select.options.length) return;
+
+            const selectedOpt = select.options[select.selectedIndex];
+            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
+            let finalCost = baseCost;
+
+            if (activeCategory === 'video') {
+                const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
+                const quality = document.getElementById('vid-quality').value;
+
+                let durationMultiplier = duration / 5;
+                let qualityMultiplier = 1.0;
+                if (quality === '1080p') qualityMultiplier = 1.2;
+                if (quality === '4k') qualityMultiplier = 1.5;
+
+                finalCost = Math.round(baseCost * durationMultiplier * qualityMultiplier);
+            } else if (activeCategory === 'image') {
+                const res = document.getElementById('img-res').value;
+                if (res === '2k') finalCost += 1;
+                if (res === '4k') finalCost += 2;
             }
+
+            document.getElementById('token-cost-hint').innerText = `Итоговая стоимость: ~${finalCost} ⚙`;
         }
 
         function enhanceTextPrompt() {
@@ -747,11 +773,20 @@
             btn.disabled = true;
             btn.innerText = "⏳ Генерация...";
 
+            const duration = document.getElementById('vid-dur').value;
+            const quality = document.getElementById('vid-quality').value;
+
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt, model, category: activeCategory })
+                    body: JSON.stringify({
+                        prompt,
+                        model,
+                        category: activeCategory,
+                        duration,
+                        quality
+                    })
                 });
 
                 const data = await res.json();
@@ -768,6 +803,11 @@
                 btn.disabled = false;
                 btn.innerText = "🚀 Сгенерировать";
             }
+        }
+
+        function buyPackage(priceTJS, tokens) {
+            alert(`Запрос на покупку пакета за ${priceTJS} TJS (${tokens} Кредитов) создан!`);
+            closeShopModal();
         }
 
         function copyLink() {
