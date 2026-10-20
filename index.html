@@ -719,7 +719,7 @@
             recalculateCost();
         }
 
-        // ИСПРАВЛЕННЫЙ ТОЧНЫЙ РАСЧЕТ СТОИМОСТИ БЕЗ ДВОЙНОГО УМНОЖЕНИЯ
+        // РАСЧЕТ СТОИМОСТИ ЗА 1 СЕКУНДУ (ЧИСТАЯ И НАДЕЖНАЯ ЛОГИКА)
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
             if (!select.options.length) return;
@@ -732,23 +732,21 @@
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
                 const quality = document.getElementById('vid-quality').value;
 
-                let qualityBase = 28; // 480p по умолчанию
+                // Базовая цена за 1 секунду для 480p (делим базовую стоимость модели на 5)
+                let costPerSec = baseCost / 5;
+
+                // Коэффициенты качества
+                let qualityMultiplier = 1.0; // 480p
                 if (quality === '720p') {
-                    qualityBase = 63;
+                    qualityMultiplier = 2.25;
                 } else if (quality === '1080p' || quality === '1080p Full HD') {
-                    qualityBase = 158;
+                    qualityMultiplier = 5.64;
                 } else if (quality === '4k' || quality === '4K Ultra HD') {
-                    qualityBase = 238;
+                    qualityMultiplier = 8.5;
                 }
 
-                if (baseCost !== 28) {
-                    qualityBase = Math.round(baseCost * (qualityBase / 28));
-                }
-
-                let durationRatio = duration / 5;
-                let durationMultiplier = Math.pow(durationRatio, 1.35);
-
-                finalCost = Math.round(qualityBase * durationMultiplier);
+                // Итог = (Цена за 1 сек) * (Коэффициент качества) * (Количество секунд)
+                finalCost = Math.round(costPerSec * qualityMultiplier * duration);
             } else if (activeCategory === 'image') {
                 const res = document.getElementById('img-res').value;
                 if (res === '2k') finalCost += 1;
