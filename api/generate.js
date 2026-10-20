@@ -13,6 +13,8 @@ export default async function handler(req, res) {
     aspect_ratio,
     duration,
     quality,
+    format,
+    websearch,
     enable_audio,
     voice
   } = req.body;
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // 2. Полная карта эндпоинтов Fal.ai (Без VeoSeeBot Remake)
+  // 2. Полная карта эндпоинтов Fal.ai
   const endpoints = {
     // Картинки
     'nanobanana-pro': 'https://fal.run/fal-ai/nano-banana-pro',
@@ -110,7 +112,7 @@ export default async function handler(req, res) {
 
   const targetEndpoint = endpoints[model] || endpoints['nanobanana-pro'];
 
-  // 3. Формирование тела запроса (Payload) для Fal.ai
+  // 3. Формирование тела запроса (Payload)
   const payload = { prompt };
 
   if (aspect_ratio) payload.aspect_ratio = aspect_ratio;
@@ -119,6 +121,8 @@ export default async function handler(req, res) {
   if (end_image_url) payload.end_image_url = end_image_url;
   if (duration) payload.duration = parseInt(duration, 10);
   if (quality) payload.quality = quality;
+  if (format) payload.output_format = format;
+  if (typeof websearch === 'boolean') payload.web_search = websearch;
   if (typeof enable_audio === 'boolean') payload.enable_audio = enable_audio;
   if (voice) payload.voice = voice;
 
