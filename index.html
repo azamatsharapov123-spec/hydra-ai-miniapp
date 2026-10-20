@@ -25,7 +25,6 @@
             box-sizing: border-box;
         }
 
-        /* Шапка профиля и баланс */
         .header {
             display: flex;
             justify-content: space-between;
@@ -53,7 +52,6 @@
         }
         .balance-badge span { color: #facc15; }
 
-        /* Промо-баннер */
         .promo-banner {
             background: linear-gradient(135deg, #1e1b4b, #311042);
             border: 1px solid rgba(139, 92, 246, 0.3);
@@ -77,7 +75,6 @@
             cursor: pointer;
         }
 
-        /* Иконки категорий */
         .categories {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -97,14 +94,12 @@
         .cat-icon { font-size: 20px; margin-bottom: 4px; }
         .cat-name { font-size: 10px; color: var(--text-secondary); font-weight: 500; }
 
-        /* Поиск и Секции */
         .section-title {
             font-size: 16px;
             font-weight: 700;
             margin-bottom: 12px;
         }
 
-        /* Форма генерации */
         .generator-box {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -136,10 +131,34 @@
             border-radius: 12px;
             font-size: 15px;
             cursor: pointer;
+            transition: 0.2s;
         }
-        .generate-btn:active { opacity: 0.85; }
+        .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Трендовые карточки */
+        /* Блок результата */
+        .result-box {
+            display: none;
+            background: var(--card-bg);
+            border: 1px solid var(--accent-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .result-box video {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        .status-msg {
+            font-size: 13px;
+            color: #facc15;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
         .trends-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -159,12 +178,9 @@
             background: #27272a;
             object-fit: cover;
         }
-        .trend-info {
-            padding: 10px;
-        }
+        .trend-info { padding: 10px; }
         .trend-title { font-size: 12px; font-weight: 600; margin: 0; }
 
-        /* Нижнее меню (Bottom Bar) */
         .nav-bar {
             position: fixed;
             bottom: 0;
@@ -191,7 +207,6 @@
 </head>
 <body>
 
-    <!-- Шапка -->
     <div class="header">
         <div class="brand">HYDRA AI ⚡</div>
         <div class="balance-badge" onclick="topUpBalance()">
@@ -199,7 +214,6 @@
         </div>
     </div>
 
-    <!-- Промо блок -->
     <div class="promo-banner">
         <div class="promo-text">
             <h3>Seedance 2.5 Pro</h3>
@@ -208,7 +222,6 @@
         <button class="promo-btn" onclick="setPrompt('Cinematic hyper-realistic shot, dramatic lighting')">Попробовать</button>
     </div>
 
-    <!-- Категории -->
     <div class="categories">
         <div class="cat-item" onclick="selectCategory('image')">
             <div class="cat-icon">🖼</div>
@@ -232,12 +245,11 @@
         </div>
     </div>
 
-    <!-- Панель генерации -->
     <div class="generator-box">
         <div class="section-title" id="gen-title">🎥 Генерация видео (Seedance)</div>
         
         <label for="prompt">Промпт / Описание сюжета:</label>
-        <textarea id="prompt" rows="3" placeholder="Опишите, что должно происходить в кадре..."></textarea>
+        <textarea id="prompt" rows="3" placeholder="Fast paced artistic showcase, fashion model..."></textarea>
         
         <label for="resolution">Разрешение и качество:</label>
         <select id="resolution">
@@ -245,10 +257,16 @@
             <option value="1080p">1080p Full HD с аудио (Максимальное)</option>
         </select>
 
-        <button class="generate-btn" onclick="generate()">🚀 Сгенерировать (-120 монет)</button>
+        <button class="generate-btn" id="gen-btn" onclick="generateVideo()">🚀 Сгенерировать (-120 монет)</button>
+        <div class="status-msg" id="status-msg">⏳ Генерация запущена... Пожалуйста, подождите (около 30-60 сек)</div>
     </div>
 
-    <!-- Тренды -->
+    <!-- Контейнер для отображения готового видео -->
+    <div class="result-box" id="result-box">
+        <div class="section-title">✨ Готовый результат:</div>
+        <video id="video-result" controls autoplay loop></video>
+    </div>
+
     <div class="section-title">🔥 Популярные тренды</div>
     <div class="trends-grid">
         <div class="trend-card" onclick="setPrompt('Cyberpunk fashion runway model, futuristic clothes, neon lights')">
@@ -265,7 +283,6 @@
         </div>
     </div>
 
-    <!-- Нижнее меню навигации -->
     <div class="nav-bar">
         <div class="nav-item active">
             <div class="nav-icon">🏠</div>
@@ -279,7 +296,7 @@
             <div class="nav-icon">📂</div>
             История
         </div>
-        <div class="nav-item" onclick="alert('Баланс: 150 монет. Пополнение скоро.')">
+        <div class="nav-item" onclick="alert('Баланс: 150 монет.')">
             <div class="nav-icon">👤</div>
             Профиль
         </div>
@@ -306,26 +323,58 @@
         }
 
         function topUpBalance() {
-            alert("Интерфейс пополнения через Telegram Stars будет доступен в следующем обновлении!");
+            alert("Пополнение баланса скоро появится!");
         }
 
-        function generate() {
+        async function generateVideo() {
             const prompt = document.getElementById('prompt').value;
             const resolution = document.getElementById('resolution').value;
+            const btn = document.getElementById('gen-btn');
+            const statusMsg = document.getElementById('status-msg');
+            const resultBox = document.getElementById('result-box');
+            const videoElem = document.getElementById('video-result');
 
             if (!prompt) {
                 alert("Пожалуйста, введите текстовый промпт!");
                 return;
             }
 
-            // Отправляем данные боту
-            tg.sendData(JSON.stringify({
-                action: "generate",
-                prompt: prompt,
-                resolution: resolution
-            }));
-            
-            tg.close();
+            // Блокируем кнопку и показываем статус
+            btn.disabled = true;
+            btn.innerText = "⏳ Генерация...";
+            statusMsg.style.display = "block";
+            resultBox.style.display = "none";
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, resolution })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Извлекаем URL сгенерированного видео из ответа Fal.ai
+                    const videoUrl = data.result.video?.url || data.result.video_url || (data.result.images && data.result.images[0]?.url);
+                    
+                    if (videoUrl) {
+                        videoElem.src = videoUrl;
+                        resultBox.style.display = "block";
+                        resultBox.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert("Видео сгенерировано, но URL не найден в ответе.");
+                    }
+                } else {
+                    alert("Ошибка: " + (data.error || "Не удалось сгенерировать видео"));
+                }
+            } catch (err) {
+                alert("Ошибка сети или сервера: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🚀 Сгенерировать (-120 монет)";
+                statusMsg.style.display = "none";
+            }
         }
     </script>
 </body>
