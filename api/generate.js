@@ -56,9 +56,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // Полный маппинг всех нейросетей на стабильные эндпоинты Fal.ai
   const endpoints = {
-    // Картинки
     'nanobanana-pro': 'https://fal.run/fal-ai/flux/schnell',
     'nanobanana-2.1': 'https://fal.run/fal-ai/flux/dev',
     'nanobanana-1': 'https://fal.run/fal-ai/flux/schnell',
@@ -75,7 +73,6 @@ export default async function handler(req, res) {
     'gpt-image-1.5': 'https://fal.run/fal-ai/flux/schnell',
     'gpt-image-2': 'https://fal.run/fal-ai/flux/dev',
 
-    // Видео (25+ моделей)
     'seedance-2.5': 'https://fal.run/fal-ai/kling-video/v1.5/pro/text-to-video',
     'gemini-omni': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
     'gemini-omni-1.1': 'https://fal.run/fal-ai/kling-video/v1/text-to-video',
@@ -104,7 +101,6 @@ export default async function handler(req, res) {
     'topaz': 'https://fal.run/fal-ai/topaz-video-upscale',
     'hailuo-02': 'https://fal.run/fal-ai/minimax/video-01/text-to-video',
 
-    // Аудио
     'suno-v5': 'https://fal.run/fal-ai/suno-music',
     'suno-5.5': 'https://fal.run/fal-ai/suno-music',
     'elevenlabs-v3': 'https://fal.run/fal-ai/elevenlabs/tts',
@@ -113,7 +109,6 @@ export default async function handler(req, res) {
     'elevenlabs-dialog': 'https://fal.run/fal-ai/elevenlabs/tts',
     'elevenlabs-speech': 'https://fal.run/fal-ai/elevenlabs/tts',
 
-    // Аватары
     'multi-talk': 'https://fal.run/fal-ai/live-portrait',
     'live-portrait': 'https://fal.run/fal-ai/live-portrait'
   };
@@ -147,12 +142,15 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: errorDetail });
     }
 
+    // Всевозможные варианты путей к медиафайлу в ответах разных моделей Fal.ai
     const mediaUrl =
       data.images?.[0]?.url ||
+      data.image?.url ||
       data.video?.url ||
       data.audio_url?.url ||
       data.audio?.url ||
-      data.url;
+      data.url ||
+      (typeof data.output === 'string' && data.output.startsWith('http') ? data.output : null);
 
     return res.status(200).json({
       success: true,
