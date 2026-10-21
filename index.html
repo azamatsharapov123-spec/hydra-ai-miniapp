@@ -703,3 +703,184 @@
         function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
 
         function onVidDurInput(val) {
+            document.getElementById('dur-val').innerText = val + ' сек';
+            recalculateCost();
+        }
+
+        function onModelSelectChange() { recalculateCost(); }
+
+        // ДИНАМИЧЕСКИЙ РАСЧЕТ СТОИМОСТИ (ВИДЕО, ФОТО, КАЧЕСТВО)
+        function recalculateCost() {
+            const select = document.getElementById('modal-model-select');
+            if (!select.options.length) return;
+            const selectedOpt = select.options[select.selectedIndex];
+            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
+            let finalCost = baseCost;
+
+            if (activeCategory === 'video') {
+                const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
+                let costPerSec = baseCost / 5;
+                finalCost = Math.round(costPerSec * duration);
+
+                const quality = document.getElementById('vid-quality').value;
+                if (quality === '1080p') finalCost += 2;
+                if (quality === '2160p') finalCost += 5;
+            } else if (activeCategory === 'image') {
+                const res = document.getElementById('img-res').value;
+                if (res === '2k') finalCost += 1;
+                if (res === '4k') finalCost += 2;
+            }
+
+            document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
+            window.currentCalculatedCost = finalCost;
+        }
+
+        function enhanceTextPrompt() {
+            const promptArea = document.getElementById('modal-prompt');
+            if (!promptArea.value.trim()) { alert("Введите текст запроса!"); return; }
+            promptArea.value = "Masterpiece, ultra-detailed, professional quality: " + promptArea.value;
+        }
+
+        async function sendPageChat() {
+            const input = document.getElementById('chat-page-input');
+            const txt = input.value.trim();
+            if (!txt) return;
+
+            const box = document.getElementById('chat-messages');
+            box.innerHTML += `<div class="chat-bubble user">${txt}</div>`;
+            input.value = '';
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: txt, category: 'chat' })
+                });
+                const data = await res.json();
+                box.innerHTML += `<div class="chat-bubble ai">${data.result?.text || "Ответ получен"}</div>`;
+            } catch (e) {
+                box.innerHTML += `<div class="chat-bubble ai">Ошибка сети</div>`;
+            }
+        }
+
+        async function executeModalGen() {
+            const prompt = document.getElementById('modal-prompt').value;
+            const model = document.getElementById('modal-model-select').value;
+            if (!prompt && activeCategory !== 'avatar') { alert("Введите запрос!"); return; }
+
+            const costToSpend = window.currentCalculatedCost || 5;
+
+            if (userCoins < costToSpend) {
+                alert(`Недостаточно токенов! Требуется: ${costToSpend} ⚡, а у вас: ${userCoins} ⚡.`);
+                openShopModal();
+                return;
+            }
+
+            const btn = document.getElementById('btn-modal-gen');
+            btn.disabled = true;
+            btn.innerText = "⏳ Генерация...";
+
+            let bodyData = {
+                prompt,
+                model,
+                category: activeCategory,
+                cost: costToSpend,
+                user_coins_client: userCoins
+            };
+
+            if (activeCategory === 'image') {
+                bodyData.aspect_ratio = document.getElementById('img-aspect').value;
+            } else if (activeCategory === 'video') {
+                bodyData.aspect_ratio = document.getElementById('vid-aspect').value;
+                bodyData.duration = document.getElementById('vid-dur').value;
+                bodyData.quality = document.getElementById('vid-quality').value;
+            }
+
+            try {
+                const res = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyData)
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    userCoins = data.new_balance;
+                    localStorage.setItem('hydra_user_coins', userCoins);
+                    document.getElementById('coins').innerText = userCoins;
+
+                    const finalMediaUrl = data.result?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500";
+
+                    saveHistoryItem({
+                        url: finalMediaUrl,
+                        prompt: prompt || 'Генерация без текста',
+                        model: model,
+                        category: activeCategory,
+                        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    });
+
+                    alert(`Генерация успешно завершена! Списано: ${costToSpend} ⚡`);
+                    closeModal();
+                    switchPage('history');
+                } else {
+                    const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || "Неизвестная ошибка");
+                    alert("Ошибка генерации: " + errorMsg);
+                }
+            } catch (e) {
+                alert("Ошибка сети при обращении к серверу");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🚀 Сгенерировать";
+            }
+        }
+
+        // ПОКУПКА ПАКЕТА: клиент отправляет только id пакета.
+        // Цену и начисление ⚡ определяет сервер после подтверждения оплаты банком.
+        // Бесплатное начисление токенов с клиента удалено.
+        async function buyPackage(pkgId) {
+            const pkg = PACKAGES.find(p => p.id === pkgId);
+            if (!pkg) return;
+
+            try {
+                const res = await fetch('/api/payments/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ package_id: pkg.id, init_data: tg.initData })
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.payment_url) {
+                    closeShopModal();
+                    tg.openLink(data.payment_url);
+                } else {
+                    alert(data.error || "Оплата банковской картой скоро будет доступна.");
+                }
+            } catch (e) {
+                alert("Оплата банковской картой скоро будет доступна.");
+            }
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(document.getElementById('ref-link-input').value);
+            alert("Ссылка скопирована!");
+        }
+
+        function shareLink() {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(document.getElementById('ref-link-input').value)}&text=Попробуй Hydra AI Studio!`);
+        }
+
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const u = tg.initDataUnsafe.user;
+            document.getElementById('u-name').innerText = u.first_name + (u.username ? ` (@${u.username})` : '');
+            document.getElementById('u-id').innerText = `ID: ${u.id}`;
+            document.getElementById('ref-link-input').value = `https://t.me/HydraAIBot?start=ref${u.id}`;
+            if (u.photo_url) {
+                document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
+            }
+        }
+
+        renderPackages();
+        renderHistory();
+    </script>
+</body>
+</html>
