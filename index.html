@@ -547,6 +547,20 @@
             renderHistory();
         }
 
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Пропускаем только http(s)-ссылки, чтобы javascript: и подобные схемы не попали в href/src
+        function safeUrl(url) {
+            return /^https?:\/\//i.test(url || '') ? url : '#';
+        }
+
         function renderHistory() {
             const container = document.getElementById('history-content');
             const list = getHistoryList();
@@ -565,9 +579,10 @@
 
             let html = '<div class="history-grid">';
             filtered.forEach(item => {
-                let mediaTag = `<img src="${item.url}" class="history-media" alt="Media">`;
+                const url = escapeHtml(safeUrl(item.url));
+                let mediaTag = `<img src="${url}" class="history-media" alt="Media">`;
                 if (item.category === 'video') {
-                    mediaTag = `<video src="${item.url}" class="history-media" controls preload="metadata"></video>`;
+                    mediaTag = `<video src="${url}" class="history-media" controls preload="metadata"></video>`;
                 } else if (item.category === 'audio') {
                     mediaTag = `<div class="history-media" style="display:flex; align-items:center; justify-content:center; font-size:35px;">🎵</div>`;
                 }
@@ -577,10 +592,10 @@
                         ${mediaTag}
                         <div class="history-info">
                             <div>
-                                <div class="history-prompt">${item.prompt || 'Без запроса'}</div>
-                                <div class="history-meta">${item.model} • ${item.date}</div>
+                                <div class="history-prompt">${escapeHtml(item.prompt || 'Без запроса')}</div>
+                                <div class="history-meta">${escapeHtml(item.model)} • ${escapeHtml(item.date)}</div>
                             </div>
-                            <a href="${item.url}" target="_blank" class="history-btn">Открыть / Скачать</a>
+                            <a href="${url}" target="_blank" rel="noopener" class="history-btn">Открыть / Скачать</a>
                         </div>
                     </div>
                 `;
@@ -667,8 +682,7 @@
             const txt = input.value.trim();
             if (!txt) return;
 
-            const box = document.getElementById('chat-messages');
-            box.innerHTML += `<div class="chat-bubble user">${txt}</div>`;
+            appendChatBubble('user', txt);
             input.value = '';
 
             try {
@@ -678,10 +692,25 @@
                     body: JSON.stringify({ prompt: txt, category: 'chat' })
                 });
                 const data = await res.json();
-                box.innerHTML += `<div class="chat-bubble ai">${data.result?.text || "Ответ получен"}</div>`;
+                if (res.ok && data.success) {
+                    appendChatBubble('ai', data.result?.text || 'Ответ получен');
+                } else {
+                    const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || 'Неизвестная ошибка');
+                    appendChatBubble('ai', 'Ошибка: ' + errorMsg);
+                }
             } catch (e) {
-                box.innerHTML += `<div class="chat-bubble ai">Ошибка сети</div>`;
+                appendChatBubble('ai', 'Ошибка сети');
             }
+        }
+
+        // Текст вставляется через textContent, чтобы HTML из ввода или ответа модели не исполнялся
+        function appendChatBubble(role, text) {
+            const box = document.getElementById('chat-messages');
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${role}`;
+            bubble.textContent = text;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
         }
 
         async function executeModalGen() {

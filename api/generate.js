@@ -25,15 +25,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'FAL_KEY не настроен в переменном окружении Vercel' });
   }
 
-  const generationCost = parseInt(cost, 10) || 5;
-  let currentBalance = parseInt(user_coins_client, 10);
-
-  if (isNaN(currentBalance) || currentBalance < generationCost) {
-    return res.status(400).json({ error: 'Недостаточно токенов на балансе для генерации' });
-  }
-
-  currentBalance -= generationCost;
-
+  // Чат бесплатный: обрабатываем до проверки баланса и ничего не списываем
   if (category === 'chat') {
     try {
       const response = await fetch('https://fal.run/fal-ai/any-llm', {
@@ -49,12 +41,27 @@ export default async function handler(req, res) {
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        const errorDetail = data.detail ? JSON.stringify(data.detail) : (data.message || 'Ошибка API Fal.ai');
+        return res.status(500).json({ error: errorDetail });
+      }
+
       const text = data.output || data.choices?.[0]?.message?.content || 'Здравствуйте! Чем я могу помочь?';
-      return res.status(200).json({ success: true, new_balance: currentBalance, result: { text } });
+      return res.status(200).json({ success: true, result: { text } });
     } catch (e) {
       return res.status(500).json({ error: 'Ошибка обработки чата' });
     }
   }
+
+  const generationCost = parseInt(cost, 10) || 5;
+  let currentBalance = parseInt(user_coins_client, 10);
+
+  if (isNaN(currentBalance) || currentBalance < generationCost) {
+    return res.status(400).json({ error: 'Недостаточно токенов на балансе для генерации' });
+  }
+
+  currentBalance -= generationCost;
 
   const endpoints = {
     'nanobanana-pro': 'https://fal.run/fal-ai/flux/schnell',
