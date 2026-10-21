@@ -153,6 +153,7 @@
             font-weight: 800; font-size: 20px;
         }
 
+        /* ===== ПАКЕТЫ ===== */
         .packages-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
         .package-card {
             background: rgba(0,0,0,0.4); border: 1px solid var(--border-color);
@@ -160,9 +161,19 @@
             cursor: pointer; transition: 0.2s;
         }
         .package-card:hover { border-color: var(--accent-color); }
+        .package-card.popular {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.2));
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 1px var(--accent-color) inset, 0 0 16px rgba(139, 92, 246, 0.25);
+        }
         .pkg-title { font-size: 14px; font-weight: 800; color: #fff; }
         .pkg-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .pkg-tag { font-size: 10px; font-weight: 600; color: #d8b4fe; margin-left: 6px; }
+        .pkg-tag.best { color: var(--success-color); }
+        .pkg-price-box { text-align: right; }
         .pkg-price { font-size: 15px; font-weight: 800; color: #facc15; }
+        .pkg-usd { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+        .shop-note { font-size: 11px; color: var(--text-secondary); margin: -4px 0 12px 0; }
 
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -334,27 +345,11 @@
     <div class="modal-overlay" id="shop-modal">
         <div class="modal-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
-                <h3 style="margin:0;">Выберите тарифный пакет (TJS)</h3>
+                <h3 style="margin:0;">Выберите тарифный пакет</h3>
                 <span style="cursor:pointer; font-size:20px;" onclick="closeShopModal()">✕</span>
             </div>
-            <div class="packages-list">
-                <div class="package-card" onclick="buyPackage(70, 100)">
-                    <div><div class="pkg-title">START — 100 Кредитов ⚡</div><div class="pkg-sub">~200 фото / ~16 видео</div></div>
-                    <div class="pkg-price">70 TJS</div>
-                </div>
-                <div class="package-card" style="border-color:var(--accent-color);" onclick="buyPackage(130, 250)">
-                    <div><div class="pkg-title">MIDDLE — 250 Кредитов ⚡</div><div class="pkg-sub">~400 фото / ~33 видео</div></div>
-                    <div class="pkg-price">130 TJS</div>
-                </div>
-                <div class="package-card" onclick="buyPackage(300, 500)">
-                    <div><div class="pkg-title">PRO — 500 Кредитов ⚡</div><div class="pkg-sub">~1000 фото / ~82 видео</div></div>
-                    <div class="pkg-price">300 TJS</div>
-                </div>
-                <div class="package-card" onclick="buyPackage(535, 1000)">
-                    <div><div class="pkg-title">CREATOR — 1 000 Кредитов ⚡</div><div class="pkg-sub">~2000 фото / ~200 видео</div></div>
-                    <div class="pkg-price">535 TJS</div>
-                </div>
-            </div>
+            <div class="shop-note">Цены в сомони (TJS) и долларах. Курс: 1 $ = 10 TJS</div>
+            <div class="packages-list" id="packages-list"></div>
             <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color);" onclick="closeShopModal()">Закрыть</button>
         </div>
     </div>
@@ -450,8 +445,14 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
+        // Если скрипт Telegram не загрузился (например, страница открыта вне Telegram),
+        // подставляем заглушку, чтобы остальной интерфейс всё равно работал.
+        const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : {
+            initData: '', initDataUnsafe: {}, expand() {}, ready() {},
+            openLink(u) { window.open(u, '_blank'); }
+        };
         tg.expand();
+        if (tg.ready) tg.ready();
 
         let activeCategory = 'image';
         let currentFilter = 'all';
@@ -459,6 +460,84 @@
         let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
         if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
         document.getElementById('coins').innerText = userCoins;
+
+        // ===== ПАКЕТЫ ПОПОЛНЕНИЯ =====
+        // Курс для показа цены в долларах: 1 $ = 10 TJS
+        const USD_RATE = 10;
+        // badge: 'popular' — выделенный цветом пакет («берут чаще»),
+        //        'best'    — самая низкая цена за ⚡
+        const PACKAGES = [
+            { id: 'trial',    name: 'Пробный',  tokens: 36,  tjs: 20 },
+            { id: 'start',    name: 'Старт',    tokens: 92,  tjs: 50 },
+            { id: 'standard', name: 'Стандарт', tokens: 188, tjs: 100, badge: 'popular' },
+            { id: 'pro',      name: 'Про',      tokens: 475, tjs: 250 },
+            { id: 'max',      name: 'Макс',     tokens: 960, tjs: 500, badge: 'best' }
+        ];
+
+        function formatNum(n) {
+            return String(n).replace('.', ',');
+        }
+
+        function renderPackages() {
+            const list = document.getElementById('packages-list');
+            list.innerHTML = '';
+
+            PACKAGES.forEach(pkg => {
+                const perToken = formatNum((pkg.tjs / pkg.tokens).toFixed(2));
+                const usd = formatNum(+(pkg.tjs / USD_RATE).toFixed(2));
+
+                const card = document.createElement('div');
+                card.className = 'package-card' + (pkg.badge === 'popular' ? ' popular' : '');
+                card.addEventListener('click', () => buyPackage(pkg.id));
+
+                const left = document.createElement('div');
+
+                const title = document.createElement('div');
+                title.className = 'pkg-title';
+                title.textContent = `${pkg.name} — ${pkg.tokens} ⚡`;
+
+                if (pkg.badge === 'popular') {
+                    const tag = document.createElement('span');
+                    tag.className = 'pkg-tag';
+                    tag.textContent = 'берут чаще';
+                    title.appendChild(tag);
+                }
+
+                const sub = document.createElement('div');
+                sub.className = 'pkg-sub';
+                sub.textContent = `${perToken} TJS за 1 ⚡`;
+
+                left.appendChild(title);
+                left.appendChild(sub);
+
+                if (pkg.badge === 'best') {
+                    const best = document.createElement('div');
+                    best.className = 'pkg-tag best';
+                    best.style.marginLeft = '0';
+                    best.style.marginTop = '2px';
+                    best.textContent = 'самая низкая цена за ⚡';
+                    left.appendChild(best);
+                }
+
+                const right = document.createElement('div');
+                right.className = 'pkg-price-box';
+
+                const price = document.createElement('div');
+                price.className = 'pkg-price';
+                price.textContent = `${pkg.tjs} TJS`;
+
+                const usdEl = document.createElement('div');
+                usdEl.className = 'pkg-usd';
+                usdEl.textContent = `≈ $${usd}`;
+
+                right.appendChild(price);
+                right.appendChild(usdEl);
+
+                card.appendChild(left);
+                card.appendChild(right);
+                list.appendChild(card);
+            });
+        }
 
         function getHistoryList() {
             try { return JSON.parse(localStorage.getItem('hydra_history')) || []; } catch(e) { return []; }
@@ -547,20 +626,6 @@
             renderHistory();
         }
 
-        function escapeHtml(str) {
-            return String(str ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        // Пропускаем только http(s)-ссылки, чтобы javascript: и подобные схемы не попали в href/src
-        function safeUrl(url) {
-            return /^https?:\/\//i.test(url || '') ? url : '#';
-        }
-
         function renderHistory() {
             const container = document.getElementById('history-content');
             const list = getHistoryList();
@@ -579,10 +644,9 @@
 
             let html = '<div class="history-grid">';
             filtered.forEach(item => {
-                const url = escapeHtml(safeUrl(item.url));
-                let mediaTag = `<img src="${url}" class="history-media" alt="Media">`;
+                let mediaTag = `<img src="${item.url}" class="history-media" alt="Media">`;
                 if (item.category === 'video') {
-                    mediaTag = `<video src="${url}" class="history-media" controls preload="metadata"></video>`;
+                    mediaTag = `<video src="${item.url}" class="history-media" controls preload="metadata"></video>`;
                 } else if (item.category === 'audio') {
                     mediaTag = `<div class="history-media" style="display:flex; align-items:center; justify-content:center; font-size:35px;">🎵</div>`;
                 }
@@ -592,10 +656,10 @@
                         ${mediaTag}
                         <div class="history-info">
                             <div>
-                                <div class="history-prompt">${escapeHtml(item.prompt || 'Без запроса')}</div>
-                                <div class="history-meta">${escapeHtml(item.model)} • ${escapeHtml(item.date)}</div>
+                                <div class="history-prompt">${item.prompt || 'Без запроса'}</div>
+                                <div class="history-meta">${item.model} • ${item.date}</div>
                             </div>
-                            <a href="${url}" target="_blank" rel="noopener" class="history-btn">Открыть / Скачать</a>
+                            <a href="${item.url}" target="_blank" class="history-btn">Открыть / Скачать</a>
                         </div>
                     </div>
                 `;
@@ -639,179 +703,3 @@
         function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
 
         function onVidDurInput(val) {
-            document.getElementById('dur-val').innerText = val + ' сек';
-            recalculateCost();
-        }
-
-        function onModelSelectChange() { recalculateCost(); }
-
-        // ДИНАМИЧЕСКИЙ РАСЧЕТ СТОИМОСТИ (ВИДЕО, ФОТО, КАЧЕСТВО)
-        function recalculateCost() {
-            const select = document.getElementById('modal-model-select');
-            if (!select.options.length) return;
-            const selectedOpt = select.options[select.selectedIndex];
-            let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
-            let finalCost = baseCost;
-
-            if (activeCategory === 'video') {
-                const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
-                let costPerSec = baseCost / 5;
-                finalCost = Math.round(costPerSec * duration);
-
-                const quality = document.getElementById('vid-quality').value;
-                if (quality === '1080p') finalCost += 2;
-                if (quality === '2160p') finalCost += 5;
-            } else if (activeCategory === 'image') {
-                const res = document.getElementById('img-res').value;
-                if (res === '2k') finalCost += 1;
-                if (res === '4k') finalCost += 2;
-            }
-
-            document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
-            window.currentCalculatedCost = finalCost;
-        }
-
-        function enhanceTextPrompt() {
-            const promptArea = document.getElementById('modal-prompt');
-            if (!promptArea.value.trim()) { alert("Введите текст запроса!"); return; }
-            promptArea.value = "Masterpiece, ultra-detailed, professional quality: " + promptArea.value;
-        }
-
-        async function sendPageChat() {
-            const input = document.getElementById('chat-page-input');
-            const txt = input.value.trim();
-            if (!txt) return;
-
-            appendChatBubble('user', txt);
-            input.value = '';
-
-            try {
-                const res = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: txt, category: 'chat' })
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    appendChatBubble('ai', data.result?.text || 'Ответ получен');
-                } else {
-                    const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || 'Неизвестная ошибка');
-                    appendChatBubble('ai', 'Ошибка: ' + errorMsg);
-                }
-            } catch (e) {
-                appendChatBubble('ai', 'Ошибка сети');
-            }
-        }
-
-        // Текст вставляется через textContent, чтобы HTML из ввода или ответа модели не исполнялся
-        function appendChatBubble(role, text) {
-            const box = document.getElementById('chat-messages');
-            const bubble = document.createElement('div');
-            bubble.className = `chat-bubble ${role}`;
-            bubble.textContent = text;
-            box.appendChild(bubble);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        async function executeModalGen() {
-            const prompt = document.getElementById('modal-prompt').value;
-            const model = document.getElementById('modal-model-select').value;
-            if (!prompt && activeCategory !== 'avatar') { alert("Введите запрос!"); return; }
-
-            const costToSpend = window.currentCalculatedCost || 5;
-
-            if (userCoins < costToSpend) {
-                alert(`Недостаточно токенов! Требуется: ${costToSpend} ⚡, а у вас: ${userCoins} ⚡.`);
-                openShopModal();
-                return;
-            }
-
-            const btn = document.getElementById('btn-modal-gen');
-            btn.disabled = true;
-            btn.innerText = "⏳ Генерация...";
-
-            let bodyData = {
-                prompt,
-                model,
-                category: activeCategory,
-                cost: costToSpend,
-                user_coins_client: userCoins
-            };
-
-            if (activeCategory === 'image') {
-                bodyData.aspect_ratio = document.getElementById('img-aspect').value;
-            } else if (activeCategory === 'video') {
-                bodyData.aspect_ratio = document.getElementById('vid-aspect').value;
-                bodyData.duration = document.getElementById('vid-dur').value;
-                bodyData.quality = document.getElementById('vid-quality').value;
-            }
-
-            try {
-                const res = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyData)
-                });
-
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    userCoins = data.new_balance;
-                    localStorage.setItem('hydra_user_coins', userCoins);
-                    document.getElementById('coins').innerText = userCoins;
-
-                    const finalMediaUrl = data.result?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500";
-
-                    saveHistoryItem({
-                        url: finalMediaUrl,
-                        prompt: prompt || 'Генерация без текста',
-                        model: model,
-                        category: activeCategory,
-                        date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    });
-
-                    alert(`Генерация успешно завершена! Списано: ${costToSpend} ⚡`);
-                    closeModal();
-                    switchPage('history');
-                } else {
-                    const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || "Неизвестная ошибка");
-                    alert("Ошибка генерации: " + errorMsg);
-                }
-            } catch (e) {
-                alert("Ошибка сети при обращении к серверу");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "🚀 Сгенерировать";
-            }
-        }
-
-        function buyPackage(priceTJS, tokens) {
-            userCoins += tokens;
-            localStorage.setItem('hydra_user_coins', userCoins);
-            document.getElementById('coins').innerText = userCoins;
-            alert(`Успешно куплено! Начислено +${tokens} ⚡. Баланс обновлен.`);
-            closeShopModal();
-        }
-
-        function copyLink() {
-            navigator.clipboard.writeText(document.getElementById('ref-link-input').value);
-            alert("Ссылка скопирована!");
-        }
-
-        function shareLink() {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(document.getElementById('ref-link-input').value)}&text=Попробуй Hydra AI Studio!`);
-        }
-
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const u = tg.initDataUnsafe.user;
-            document.getElementById('u-name').innerText = u.first_name + (u.username ? ` (@${u.username})` : '');
-            document.getElementById('u-id').innerText = `ID: ${u.id}`;
-            document.getElementById('ref-link-input').value = `https://t.me/HydraAIBot?start=ref${u.id}`;
-            if (u.photo_url) {
-                document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
-            }
-        }
-
-        renderHistory();
-    </script>
-</body>
-</html>
