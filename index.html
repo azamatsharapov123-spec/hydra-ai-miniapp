@@ -456,9 +456,37 @@
         let activeCategory = 'image';
         let currentFilter = 'all';
 
-        let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
-        if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
-        document.getElementById('coins').innerText = userCoins;
+        // Баланс хранится на сервере; здесь только копия для отображения
+        let userCoins = 0;
+        localStorage.removeItem('hydra_user_coins');
+
+        // Подписанные Telegram данные — по ним сервер узнаёт пользователя
+        function apiHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-Telegram-Init-Data': tg.initData || ''
+            };
+        }
+
+        function setCoins(value) {
+            if (typeof value !== 'number') return;
+            userCoins = value;
+            document.getElementById('coins').innerText = userCoins;
+        }
+
+        async function loadBalance() {
+            try {
+                const res = await fetch('/api/balance', { headers: apiHeaders() });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    setCoins(data.balance);
+                } else {
+                    document.getElementById('coins').innerText = '—';
+                }
+            } catch (e) {
+                document.getElementById('coins').innerText = '—';
+            }
+        }
 
         function getHistoryList() {
             try { return JSON.parse(localStorage.getItem('hydra_history')) || []; } catch(e) { return []; }
@@ -654,7 +682,13 @@
             let finalCost = baseCost;
 
             if (activeCategory === 'video') {
-                const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
+                const durInput = document.getElementById('vid-dur');
+                durInput.max = selectedOpt.dataset.maxDur || 30;
+                if (parseInt(durInput.value, 10) > durInput.max) {
+                    durInput.value = durInput.max;
+                    document.getElementById('dur-val').innerText = durInput.value + ' сек';
+                }
+                const duration = parseInt(durInput.value, 10) || 5;
                 let costPerSec = baseCost / 5;
                 finalCost = Math.round(costPerSec * duration);
 
@@ -688,7 +722,7 @@
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: apiHeaders(),
                     body: JSON.stringify({ prompt: txt, category: 'chat' })
                 });
                 const data = await res.json();
@@ -733,13 +767,12 @@
             let bodyData = {
                 prompt,
                 model,
-                category: activeCategory,
-                cost: costToSpend,
-                user_coins_client: userCoins
+                category: activeCategory
             };
 
             if (activeCategory === 'image') {
                 bodyData.aspect_ratio = document.getElementById('img-aspect').value;
+                bodyData.resolution = document.getElementById('img-res').value;
             } else if (activeCategory === 'video') {
                 bodyData.aspect_ratio = document.getElementById('vid-aspect').value;
                 bodyData.duration = document.getElementById('vid-dur').value;
@@ -749,17 +782,15 @@
             try {
                 const res = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: apiHeaders(),
                     body: JSON.stringify(bodyData)
                 });
 
                 const data = await res.json();
-                if (res.ok && data.success) {
-                    userCoins = data.new_balance;
-                    localStorage.setItem('hydra_user_coins', userCoins);
-                    document.getElementById('coins').innerText = userCoins;
+                setCoins(data.new_balance ?? data.balance);
 
-                    const finalMediaUrl = data.result?.url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500";
+                if (res.ok && data.success) {
+                    const finalMediaUrl = data.result.url;
 
                     saveHistoryItem({
                         url: finalMediaUrl,
@@ -769,7 +800,7 @@
                         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     });
 
-                    alert(`Генерация успешно завершена! Списано: ${costToSpend} ⚡`);
+                    alert(`Генерация успешно завершена! Списано: ${data.cost} ⚡`);
                     closeModal();
                     switchPage('history');
                 } else {
@@ -784,12 +815,9 @@
             }
         }
 
+        // Начисление токенов будет только на сервере после подтверждённой оплаты
         function buyPackage(priceTJS, tokens) {
-            userCoins += tokens;
-            localStorage.setItem('hydra_user_coins', userCoins);
-            document.getElementById('coins').innerText = userCoins;
-            alert(`Успешно куплено! Начислено +${tokens} ⚡. Баланс обновлен.`);
-            closeShopModal();
+            alert('Оплата скоро будет доступна. Следите за обновлениями!');
         }
 
         function copyLink() {
@@ -812,6 +840,7 @@
         }
 
         renderHistory();
+        loadBalance();
     </script>
 </body>
 </html>
