@@ -368,13 +368,19 @@
         <div class="partner-box">
             <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
             <p style="font-size:12px; color:var(--text-secondary); margin:0;">
-                Приглашайте друзей — получайте <b>20%</b> с их покупок.
+                Приглашайте друзей — получайте <b>20%</b> с их пополнений и ещё <b>4%</b> с пополнений тех, кого пригласили они.
             </p>
             <label style="margin-top:10px;">Ваша ссылка:</label>
-            <input type="text" id="ref-link-input" readonly value="https://t.me/HydraAIBot?start=ref123">
+            <input type="text" id="ref-link-input" readonly value="Загрузка...">
             <div style="display:flex; gap:8px; margin-top:10px;">
                 <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color); margin-top:0;" onclick="copyLink()">📋 Скопировать</button>
                 <button class="btn-main" style="margin-top:0;" onclick="shareLink()">✈ Отправить</button>
+            </div>
+            <div id="ref-stats" style="margin-top:14px; font-size:12px; line-height:1.7; color:var(--text-secondary);"></div>
+            <div id="withdraw-box" style="margin-top:10px; display:none;">
+                <label>Реквизиты для выплаты:</label>
+                <input type="text" id="wd-details" maxlength="200" placeholder="Номер карты или телефона">
+                <button class="btn-main" id="btn-withdraw" onclick="requestWithdraw()">💸 Вывести</button>
             </div>
         </div>
     </div>
@@ -454,9 +460,15 @@
         let activeCategory = 'image';
         let currentFilter = 'all';
 
-        let userCoins = parseInt(localStorage.getItem('hydra_user_coins'), 10);
-        if (isNaN(userCoins)) { userCoins = 10; localStorage.setItem('hydra_user_coins', userCoins); }
-        document.getElementById('coins').innerText = userCoins;
+        // Баланс хранится на сервере. Здесь только копия для показа на экране.
+        let userCoins = 0;
+        document.getElementById('coins').innerText = '…';
+
+        // Все запросы к серверу подписываются данными Telegram (initData): по ним сервер узнаёт пользователя
+        function apiFetch(url, opts = {}) {
+            const headers = Object.assign({}, opts.headers || {}, { 'X-Init-Data': tg.initData || '' });
+            return fetch(url, Object.assign({}, opts, { headers }));
+        }
 
         // ===== ПАКЕТЫ ПОПОЛНЕНИЯ =====
         // Курс для показа цены в долларах: 1 $ = 10 TJS
@@ -617,6 +629,7 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${pageId}`).classList.add('active');
             if (pageId === 'history') renderHistory();
+            if (pageId === 'profile') loadMe();
         }
 
         function filterHistory(type, btn) {
@@ -1159,7 +1172,7 @@
             input.value = '';
 
             try {
-                const res = await fetch('/api/generate', {
+                const res = await apiFetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt: txt, category: 'chat' })
@@ -1180,7 +1193,6 @@
         }
         function setCoins(n) {
             userCoins = n;
-            localStorage.setItem('hydra_user_coins', userCoins);
             document.getElementById('coins').innerText = userCoins;
         }
 
@@ -1189,18 +1201,26 @@
             let fails = 0;
             while (Date.now() - entry.ts < limit) {
                 try {
-                    const r = await fetch('/api/status?t=' + encodeURIComponent(entry.job));
+                    const r = await apiFetch('/api/status?t=' + encodeURIComponent(entry.job));
                     const d = await r.json();
                     fails = 0;
                     if (d.status === 'COMPLETED') return { ok: true, url: d.url };
-                    if (d.status === 'FAILED') return { ok: false, error: d.error || 'Ошибка генерации' };
+                    if (d.status === 'FAILED') return { ok: false, error: d.error || 'Ошибка генерации', balance: d.balance };
+                    if (r.status === 401) return { ok: false, error: d.error || 'Откройте приложение через Telegram' };
                     if (onTick) onTick(d, Date.now() - entry.ts);
                 } catch (e) {
                     if (++fails > 8) return { ok: false, error: 'Нет связи с сервером' };
                 }
                 await new Promise(r => setTimeout(r, 4000));
             }
-            return { ok: false, error: 'Генерация заняла слишком много времени' };
+            // время вышло: сервер вернёт ⚡ за эту задачу
+            try {
+                const r = await apiFetch('/api/status?giveup=1&t=' + encodeURIComponent(entry.job));
+                const d = await r.json();
+                return { ok: false, error: 'Генерация заняла слишком много времени', balance: d.balance };
+            } catch (e) {
+                return { ok: false, error: 'Генерация заняла слишком много времени' };
+            }
         }
 
         // Завершает задачу: успех — в историю, ошибка — возврат ⚡
@@ -1215,8 +1235,10 @@
                     date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
                 renderHistory();
+            } else if (typeof result.balance === 'number') {
+                setCoins(result.balance);   // сервер уже вернул ⚡
             } else {
-                setCoins(userCoins + entry.cost);
+                loadMe();
             }
         }
 
@@ -1259,14 +1281,13 @@
             btn.innerText = '⏳ Отправка...';
 
             try {
-                const res = await fetch('/api/generate', {
+                const res = await apiFetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         model: m.id,
                         values: v,
-                        audio_seconds: v.audio_seconds,
-                        user_coins_client: userCoins
+                        audio_seconds: v.audio_seconds
                     })
                 });
                 const data = await res.json().catch(() => ({}));
@@ -1310,10 +1331,10 @@
             if (!pkg) return;
 
             try {
-                const res = await fetch('/api/payments/create', {
+                const res = await apiFetch('/api/payments/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ package_id: pkg.id, init_data: tg.initData })
+                    body: JSON.stringify({ package_id: pkg.id })
                 });
                 const data = await res.json().catch(() => ({}));
 
@@ -1341,16 +1362,113 @@
             const u = tg.initDataUnsafe.user;
             document.getElementById('u-name').innerText = u.first_name + (u.username ? ` (@${u.username})` : '');
             document.getElementById('u-id').innerText = `ID: ${u.id}`;
-            document.getElementById('ref-link-input').value = `https://t.me/HydraAIBot?start=ref${u.id}`;
             if (u.photo_url) {
-                document.getElementById('u-avatar').innerHTML = `<img src="${u.photo_url}" style="width:100%; height:100%; border-radius:50%;">`;
+                const img = document.createElement('img');
+                img.src = u.photo_url;
+                img.style.cssText = 'width:100%; height:100%; border-radius:50%;';
+                const av = document.getElementById('u-avatar');
+                av.innerHTML = '';
+                av.appendChild(img);
             }
         }
+
+        let myInfo = null;
+
+        // Данные пользователя с сервера: баланс ⚡, реферальная ссылка и статистика
+        async function loadMe() {
+            try {
+                const r = await apiFetch('/api/me');
+                const d = await r.json();
+                if (!r.ok) {
+                    document.getElementById('ref-link-input').value = d.error || 'Ошибка загрузки';
+                    document.getElementById('coins').innerText = '0';
+                    return;
+                }
+                myInfo = d;
+                setCoins(d.coins);
+                document.getElementById('ref-link-input').value = d.ref_link;
+                renderRefStats();
+            } catch (e) {
+                document.getElementById('ref-link-input').value = 'Нет связи с сервером';
+            }
+        }
+
+        function renderRefStats() {
+            if (!myInfo) return;
+            const m = myInfo;
+            const box = document.getElementById('ref-stats');
+            box.textContent = '';
+            const rows = [
+                ['Партнёрский баланс', m.ref_balance.toFixed(2) + ' TJS'],
+                ['Заработано всего', m.ref_earned.toFixed(2) + ' TJS'],
+                ['Приглашено (1-й уровень)', String(m.ref_l1)],
+                ['Приглашено (2-й уровень)', String(m.ref_l2)]
+            ];
+            rows.forEach(([k, v]) => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; justify-content:space-between;';
+                const a = document.createElement('span'); a.textContent = k;
+                const b = document.createElement('b'); b.textContent = v; b.style.color = 'var(--text-primary, #fff)';
+                row.appendChild(a); row.appendChild(b);
+                box.appendChild(row);
+            });
+            if (m.withdraw_pending > 0) {
+                const p = document.createElement('div');
+                p.textContent = `Заявка на вывод ${m.withdraw_pending.toFixed(2)} TJS в обработке`;
+                box.appendChild(p);
+            }
+            const wd = document.getElementById('withdraw-box');
+            const hint = document.createElement('div');
+            hint.style.marginTop = '6px';
+            if (m.ref_balance >= m.withdraw_min) {
+                wd.style.display = 'block';
+            } else {
+                wd.style.display = 'none';
+                hint.textContent = `Вывод доступен от ${m.withdraw_min} TJS`;
+                box.appendChild(hint);
+            }
+        }
+
+        async function requestWithdraw() {
+            const details = document.getElementById('wd-details').value.trim();
+            if (details.length < 4) { alert('Укажите номер карты или телефона для выплаты'); return; }
+            if (!confirm('Вывести весь партнёрский баланс?')) return;
+            const btn = document.getElementById('btn-withdraw');
+            btn.disabled = true;
+            try {
+                const r = await apiFetch('/api/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (r.ok && d.success) {
+                    showToast('Заявка отправлена');
+                    document.getElementById('wd-details').value = '';
+                } else {
+                    alert(d.error || 'Не удалось отправить заявку');
+                }
+            } catch (e) {
+                alert('Нет связи с сервером');
+            } finally {
+                btn.disabled = false;
+                loadMe();
+            }
+        }
+
+        // Разрешение на сообщения от бота: нужно, чтобы бот мог сообщить о бонусах и пополнении
+        try {
+            const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
+            if (u && u.allows_write_to_pm !== true && tg.requestWriteAccess && !sessionStorage.getItem('hydra_wa')) {
+                sessionStorage.setItem('hydra_wa', '1');
+                setTimeout(() => { try { tg.requestWriteAccess(); } catch (e) {} }, 1500);
+            }
+        } catch (e) {}
 
         renderPackages();
         renderHistory();
         loadCatalog();
-        resumePending();
+        loadMe().then(resumePending);
     </script>
 </body>
 </html>
