@@ -3,7 +3,7 @@ import { authUser, sendError } from '../../lib/auth.js';
 import { HttpError } from '../../lib/db.js';
 import { getPackage } from '../../lib/config.js';
 import { getMethod } from '../../lib/paymethods.js';
-import { createPayment } from '../../lib/payments.js';
+import { createPayment, payAmount } from '../../lib/payments.js';
 
 // Ручная оплата: создаём платёж и показываем реквизиты. Деньги засчитываются только
 // после того, как администратор подтвердит поступление кнопкой в Telegram.
@@ -33,7 +33,8 @@ export default async function handler(req, res) {
       success: true,
       payment: {
         id: pay.id,
-        tjs: Number(pay.tjs),
+        tjs: payAmount(pay),
+        base_tjs: Number(pay.tjs),
         coins: pay.coins,
         package: pkg.name,
         method: { bank: method.bank, type: method.type, number: method.number, holder: method.holder }

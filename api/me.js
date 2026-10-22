@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const tier = isPartner ? { rate: Number(s.p1) } : refTier(paying);
     const nt = isPartner ? null : nextTier(paying);
     const pays = await query(
-      `SELECT id, tjs, coins, status FROM payments
+      `SELECT id, COALESCE(pay_amount, tjs) AS tjs, coins, status FROM payments
        WHERE user_id=$1 AND created_at > now() - interval '30 days' ORDER BY id DESC LIMIT 5`, [user.id]);
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({

@@ -2,6 +2,10 @@ import crypto from 'crypto';
 import { upsertUser } from '../lib/auth.js';
 import { sendMessage, openAppKeyboard, webhookSecret, tgCall, isAdmin } from '../lib/bot.js';
 import { adminCommand, paymentDecision } from '../lib/adminops.js';
+import { handleSupportMessage, forwardAttachment, adminReply } from '../lib/support.js';
+
+// ИИ может думать несколько секунд
+export const config = { maxDuration: 30 };
 
 // Вебхук бота: /start, реферальный код из ссылки t.me/HydraAIBot?start=КОД,
 // команды администратора и кнопки подтверждения платежей.
@@ -44,10 +48,19 @@ export default async function handler(req, res) {
       const text = String(msg.text || '');
 
       // --- команды администратора ---
-      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|help|admin)\b/i.test(text)) {
+      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|help|admin|ai)\b/i.test(text)) {
         const reply = await adminCommand(text);
         await sendMessage(msg.chat.id, reply);
         return res.status(200).send('ok');
+      }
+
+      // --- администратор отвечает клиенту: «Ответить» на сообщение поддержки ---
+      if (isAdmin(msg.from.id) && msg.reply_to_message) {
+        const confirm = await adminReply(msg);
+        if (confirm) {
+          await sendMessage(msg.chat.id, confirm);
+          return res.status(200).send('ok');
+        }
       }
 
       const m = text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?/);
@@ -55,9 +68,22 @@ export default async function handler(req, res) {
         await upsertUser(msg.from, m[1] || '');
         await sendMessage(
           msg.chat.id,
-          'Добро пожаловать в Hydra AI Studio! 👋\nСоздавайте изображения, видео, аудио и аватары с помощью нейросетей. Нажмите кнопку ниже, чтобы открыть приложение.',
+          'Добро пожаловать в Hydra AI Studio! 👋\nСоздавайте изображения, видео, аудио и аватары с помощью нейросетей. Нажмите кнопку ниже, чтобы открыть приложение.\n\nЕсть вопрос? Просто напишите его сюда: сначала ответит ИИ-помощник, а сложные вопросы я передам администратору.',
           openAppKeyboard()
         );
+      } else if (isAdmin(msg.from.id)) {
+        await sendMessage(msg.chat.id, 'Чтобы ответить клиенту, нажмите «Ответить» на его сообщение. Список команд: /help', openAppKeyboard());
+      } else if (text && !text.startsWith('/')) {
+        // --- вопрос в поддержку из чата с ботом ---
+        const { user } = await upsertUser(msg.from, '');
+        const out = await handleSupportMessage(user, text);
+        for (const r of out.replies) await sendMessage(msg.chat.id, r.text);
+        if (out.handoff && !out.replies.length) await sendMessage(msg.chat.id, '✉️ Передал администратору.');
+      } else if (!text) {
+        // фото, чек, видео, документ: пересылаем администратору
+        const { user } = await upsertUser(msg.from, '');
+        const sent = await forwardAttachment(user, msg);
+        await sendMessage(msg.chat.id, sent ? '📎 Передал администратору. Ответ придёт сюда.' : 'Не удалось передать вложение. Попробуйте позже.');
       } else {
         await sendMessage(msg.chat.id, 'Откройте приложение кнопкой ниже 👇', openAppKeyboard());
       }

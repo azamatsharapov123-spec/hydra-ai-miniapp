@@ -4,6 +4,7 @@ import { HttpError } from '../../lib/db.js';
 import { getPackage } from '../../lib/config.js';
 import { getMethod } from '../../lib/paymethods.js';
 import { sendMessage, sendFile } from '../../lib/bot.js';
+import { payAmount } from '../../lib/payments.js';
 
 const RECEIPT = /^data:(image\/(?:jpeg|png|webp)|application\/pdf);base64,/i;
 const MAX_RECEIPT = 2.5 * 1024 * 1024;
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
       `💳 Платёж №${pay.id}`,
       `Пользователь: ${who}`,
       `Пакет: ${pkg ? pkg.name : pay.package_id}, ${pay.coins} ⚡`,
-      `Сумма: ${Number(pay.tjs).toFixed(2)} TJS`,
+      `Сумма к поступлению: ${payAmount(pay).toFixed(2)} TJS (ищите в банке именно эту сумму)`,
       method ? `Куда переводил: ${method.bank}, ${method.type === 'card' ? 'карта' : 'телефон'} ${method.number}` : '',
       receipt ? '📎 Чек приложен' : 'Чек не приложен'
     ].filter(Boolean).join('\n');
