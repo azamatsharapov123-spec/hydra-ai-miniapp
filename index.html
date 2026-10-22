@@ -96,7 +96,7 @@
             color: #fff; font-size: 13px; box-sizing: border-box; outline: none;
         }
         .search-box .search-input { padding: 12px 12px 12px 38px; background: var(--card-bg); }
-        .search-icon { position: absolute; left: 12px; top: 12px; color: var(--text-secondary); }
+        .search-icon { position: absolute; left: 12px; top: 12px; width: 18px; height: 18px; color: var(--text-secondary); }
 
         .partner-box {
             background: var(--card-bg); border: 1px solid var(--border-color);
@@ -288,6 +288,46 @@
         .char-grid .char-card .char-img, .char-grid .char-card .char-add { width: 100%; height: auto; aspect-ratio: 1; }
         .btn-ghost { background: var(--card-bg); border: 1px solid var(--border-color); }
 
+
+        /* ===== ИКОНКИ И НОВЫЙ ВИД ===== */
+        .ico { display: inline-flex; width: 22px; height: 22px; flex-shrink: 0; }
+        .ico svg { width: 100%; height: 100%; }
+        .brand-bolt { width: 26px; height: 26px; border-radius: 9px; background: var(--accent-gradient); color: #fff; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(99,102,241,0.45); }
+        .brand-bolt .ico { width: 15px; height: 15px; }
+        .tool-icon-btn { width: 58px; height: 58px; border-radius: 19px; border: none; color: #fff; box-shadow: 0 8px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.28); transition: transform .15s; }
+        .tool-item:active .tool-icon-btn { transform: scale(0.93); }
+        .tool-icon-btn .ico { width: 26px; height: 26px; }
+        .tool-image .tool-icon-btn { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+        .tool-video .tool-icon-btn { background: linear-gradient(135deg, #ec4899, #f97316); }
+        .tool-audio .tool-icon-btn { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+        .tool-avatar .tool-icon-btn { background: linear-gradient(135deg, #10b981, #14b8a6); }
+        .nav-item { position: relative; }
+        .nav-icon { display: flex; align-items: center; justify-content: center; width: 50px; height: 28px; margin: 0 auto 2px; border-radius: 14px; font-size: 0; transition: background .2s, color .2s; }
+        .nav-icon .ico { width: 21px; height: 21px; }
+        .nav-item.active .nav-icon { background: linear-gradient(135deg, rgba(139,92,246,0.45), rgba(59,130,246,0.45)); }
+        .nav-badge { position: absolute; top: -3px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: #f97316; color: #fff; font-size: 10px; font-weight: 800; line-height: 16px; display: none; }
+        .viewer-act .ic { display: flex; width: 22px; height: 22px; margin: 0 auto 4px; font-size: 0; }
+        .viewer-rail { overflow-y: auto; justify-content: flex-start; padding-top: 2px; }
+        .viewer-stage { cursor: pointer; }
+        .viewer-stage img, .viewer-stage video, .viewer-stage audio { cursor: auto; }
+        .empty-icon { display: flex; justify-content: center; opacity: 0.55; }
+        .empty-icon .ico { width: 44px; height: 44px; }
+        .tab-btn { display: inline-flex; align-items: center; gap: 6px; }
+        .tab-btn .ico { width: 14px; height: 14px; }
+        .btn-main .ico { width: 18px; height: 18px; vertical-align: -4px; margin-right: 6px; }
+        .trend-chip { display: inline-flex; align-items: center; gap: 4px; }
+        .trend-chip .ico { width: 11px; height: 11px; }
+
+        /* ===== ГЕНЕРАЦИЯ В ИСТОРИИ ===== */
+        .history-card.pending { border-color: rgba(139,92,246,0.5); }
+        .pend-media { height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #c4b5fd;
+            background: linear-gradient(110deg, #17171b 30%, #26233a 50%, #17171b 70%); background-size: 220% 100%; animation: shimmer 1.8s linear infinite; }
+        .pend-media .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(196,181,253,0.25); border-top-color: #c4b5fd; animation: spin 0.9s linear infinite; }
+        .pend-timer { font-size: 15px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+        .pend-fail .pend-media { background: #2a1717; color: #fca5a5; animation: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer { to { background-position: -220% 0; } }
+
         .nav-bar {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: rgba(18, 18, 20, 0.95); backdrop-filter: blur(12px);
@@ -296,16 +336,15 @@
         }
         .nav-item { text-align: center; color: var(--text-secondary); font-size: 9px; cursor: pointer; flex: 1; }
         .nav-item.active { color: #ffffff; font-weight: 700; }
-        .nav-icon { font-size: 18px; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="brand-logo">⚡ Hydra AI Studio</div>
+        <div class="brand-logo"><span class="brand-bolt"><span class="ico" data-ico="bolt"></span></span> Hydra AI Studio</div>
         <div class="header-actions">
             <div class="buy-badge" onclick="openShopModal()">КУПИТЬ <span id="coins">10</span> ⚡</div>
-            <div class="settings-btn" onclick="openShopModal()">➕</div>
+            <div class="settings-btn" onclick="openShopModal()"><span class="ico" data-ico="plus" style="width:16px;height:16px;vertical-align:-3px;"></span></div>
         </div>
     </div>
 
@@ -325,41 +364,41 @@
         </div>
 
         <div class="quick-tools">
-            <div class="tool-item" onclick="openModal('image')">
-                <div class="tool-icon-btn">🖼</div>
+            <div class="tool-item tool-image" onclick="openModal('image')">
+                <div class="tool-icon-btn"><span class="ico" data-ico="image"></span></div>
                 <div class="tool-name">AI Картинка</div>
             </div>
-            <div class="tool-item" onclick="openModal('video')">
-                <div class="tool-icon-btn">🎥</div>
+            <div class="tool-item tool-video" onclick="openModal('video')">
+                <div class="tool-icon-btn"><span class="ico" data-ico="video"></span></div>
                 <div class="tool-name">AI Видео</div>
             </div>
-            <div class="tool-item" onclick="openModal('audio')">
-                <div class="tool-icon-btn">🎵</div>
+            <div class="tool-item tool-audio" onclick="openModal('audio')">
+                <div class="tool-icon-btn"><span class="ico" data-ico="music"></span></div>
                 <div class="tool-name">AI Аудио</div>
             </div>
-            <div class="tool-item" onclick="openModal('avatar')">
-                <div class="tool-icon-btn">👤</div>
+            <div class="tool-item tool-avatar" onclick="openModal('avatar')">
+                <div class="tool-icon-btn"><span class="ico" data-ico="avatar"></span></div>
                 <div class="tool-name">AI Аватар</div>
             </div>
         </div>
 
         <div class="search-box">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon ico" data-ico="search"></span>
             <input type="text" class="search-input" id="home-search" placeholder="Поиск по названию тренда..." oninput="renderTrends()">
         </div>
 
         <div style="font-size:14px; font-weight:800; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-            <span>🔥 ТРЕНДЫ НА МИЛЛИОН ПРОСМОТРОВ</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;"><span class="ico" data-ico="flame" style="width:18px;height:18px;color:#fb923c;"></span>ТРЕНДЫ НА МИЛЛИОН ПРОСМОТРОВ</span>
             <span class="sec-link" id="home-trends-all" style="display:none;" onclick="switchPage('ideas')">Все</span>
         </div>
         <div class="trend-grid" id="home-trend-grid" style="display:none;"></div>
         <div id="home-fallback" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
             <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('video')">
-                <div style="font-size:30px;">🎬</div>
+                <div class="ico" data-ico="video" style="width:30px;height:30px;color:#f472b6;"></div>
                 <div style="font-size:12px; font-weight:700; margin-top:4px;">AI Видео Генерация</div>
             </div>
             <div class="partner-box" style="padding:10px; text-align:center; cursor:pointer;" onclick="openModal('image')">
-                <div style="font-size:30px;">🖼</div>
+                <div class="ico" data-ico="image" style="width:30px;height:30px;color:#a78bfa;"></div>
                 <div style="font-size:12px; font-weight:700; margin-top:4px;">AI Картинки & Ремейк</div>
             </div>
         </div>
@@ -367,14 +406,14 @@
 
     <!-- 2. ТРЕНДЫ -->
     <div id="page-ideas" class="app-page">
-        <h2 style="margin:0 0 4px;">🔥 Тренды</h2>
+        <h2 style="margin:0 0 4px;display:flex;align-items:center;gap:8px;"><span class="ico" data-ico="flame" style="width:24px;height:24px;color:#fb923c;"></span>Тренды</h2>
         <div class="muted">Выберите тренд, добавьте фото персонажей и нажмите «Повторить». Промпт уже готов.</div>
 
         <div class="sec-title">Мои персонажи <span class="sec-link" onclick="openCharModal('create')">＋ Создать</span></div>
         <div class="char-strip" id="char-strip"></div>
 
         <div class="search-box" style="margin:14px 0;">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon ico" data-ico="search"></span>
             <input type="text" class="search-input" id="trend-search" placeholder="Поиск тренда..." oninput="renderTrends()">
         </div>
         <div class="trend-grid" id="trend-grid"></div>
@@ -384,8 +423,8 @@
     <!-- 3. ЧАТ И ПОДДЕРЖКА -->
     <div id="page-chat" class="app-page">
         <div class="tabs-header" style="margin-bottom:10px;">
-            <button class="tab-btn active" id="ct-ai" onclick="chatTab('ai')">💬 Чат AI</button>
-            <button class="tab-btn" id="ct-support" onclick="chatTab('support')">🛟 Поддержка</button>
+            <button class="tab-btn active" id="ct-ai" onclick="chatTab('ai')"><span class="ico" data-ico="chat"></span>Чат AI</button>
+            <button class="tab-btn" id="ct-support" onclick="chatTab('support')"><span class="ico" data-ico="support"></span>Поддержка</button>
         </div>
 
         <div id="chat-ai-pane">
@@ -433,8 +472,8 @@
             </div>
         </div>
 
-        <button class="btn-main" style="background: var(--accent-gradient); margin-bottom: 10px;" onclick="openShopModal()">💳 КУПИТЬ ТОКЕНЫ И ПАКЕТЫ</button>
-        <button class="btn-main btn-ghost" style="margin: 0 0 16px;" onclick="switchPage('chat'); chatTab('support')">🛟 Поддержка</button>
+        <button class="btn-main" style="background: var(--accent-gradient); margin-bottom: 10px;" onclick="openShopModal()"><span class="ico" data-ico="card"></span>КУПИТЬ ТОКЕНЫ И ПАКЕТЫ</button>
+        <button class="btn-main btn-ghost" style="margin: 0 0 16px;" onclick="switchPage('chat'); chatTab('support')"><span class="ico" data-ico="support"></span>Поддержка</button>
 
         <div class="partner-box">
             <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
@@ -520,12 +559,14 @@
                 </div>
             </div>
             <div class="viewer-rail">
-                <div class="viewer-act primary" onclick="viewerDownload()"><span class="ic">⬇</span>Скачать</div>
-                <div class="viewer-act" onclick="viewerCopyLink()"><span class="ic">🔗</span>Копировать ссылку</div>
-                <div class="viewer-act" onclick="viewerCopyPrompt()"><span class="ic">📝</span>Копировать промпт</div>
-                <div class="viewer-act" onclick="viewerShare()"><span class="ic">✈</span>Поделиться</div>
-                <div class="viewer-act danger" onclick="viewerDelete()"><span class="ic">🗑</span>Удалить</div>
-                <div class="viewer-act" onclick="closeViewer()"><span class="ic">✕</span>Закрыть</div>
+                <div class="viewer-act primary" onclick="viewerSave()"><span class="ic ico" data-ico="download"></span>Сохранить в галерею</div>
+                <div class="viewer-act" onclick="viewerSendBot(false)"><span class="ic ico" data-ico="send"></span>В чат с ботом</div>
+                <div class="viewer-act" id="va-file" onclick="viewerSendBot(true)"><span class="ic ico" data-ico="clip"></span>Файлом, без сжатия</div>
+                <div class="viewer-act" onclick="viewerCopyLink()"><span class="ic ico" data-ico="link"></span>Ссылка</div>
+                <div class="viewer-act" onclick="viewerCopyPrompt()"><span class="ic ico" data-ico="doc"></span>Промпт</div>
+                <div class="viewer-act" onclick="viewerShare()"><span class="ic ico" data-ico="share"></span>Поделиться</div>
+                <div class="viewer-act danger" onclick="viewerDelete()"><span class="ic ico" data-ico="trash"></span>Удалить</div>
+                <div class="viewer-act" onclick="closeViewer()"><span class="ic ico" data-ico="close"></span>Закрыть</div>
             </div>
         </div>
     </div>
@@ -533,11 +574,11 @@
 
     <!-- НИЖНЕЕ МЕНЮ -->
     <div class="nav-bar">
-        <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><div class="nav-icon">🏠</div>Главная</div>
-        <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')"><div class="nav-icon">🔥</div>Тренды</div>
-        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')"><div class="nav-icon">💬</div>Чат</div>
-        <div class="nav-item" id="nav-history" onclick="switchPage('history')"><div class="nav-icon">🕒</div>История</div>
-        <div class="nav-item" id="nav-profile" onclick="switchPage('profile')"><div class="nav-icon">👤</div>Профиль</div>
+        <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><div class="nav-icon"><span class="ico" data-ico="home"></span></div>Главная</div>
+        <div class="nav-item" id="nav-ideas" onclick="switchPage('ideas')"><div class="nav-icon"><span class="ico" data-ico="flame"></span></div>Тренды</div>
+        <div class="nav-item" id="nav-chat" onclick="switchPage('chat')"><div class="nav-icon"><span class="ico" data-ico="chat"></span></div>Чат</div>
+        <div class="nav-item" id="nav-history" onclick="switchPage('history')"><span class="nav-badge" id="nav-badge"></span><div class="nav-icon"><span class="ico" data-ico="clock"></span></div>История</div>
+        <div class="nav-item" id="nav-profile" onclick="switchPage('profile')"><div class="nav-icon"><span class="ico" data-ico="user"></span></div>Профиль</div>
     </div>
 
     <script>
@@ -554,6 +595,41 @@
         let currentFilter = 'all';
 
         // Баланс хранится на сервере. Здесь только копия для показа на экране.
+        // ===== ИКОНКИ =====
+        const ICONS = {
+            bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor" stroke="none"/>',
+            home: '<path d="M3 11.2 12 4l9 7.2"/><path d="M5.5 10v9.2c0 .5.4.8.8.8H9.5v-5.5h5V20h3.2c.4 0 .8-.3.8-.8V10"/>',
+            flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+            chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+            clock: '<circle cx="12" cy="12" r="9.5"/><polyline points="12 6.5 12 12 15.5 14"/>',
+            user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+            image: '<rect width="18" height="18" x="3" y="3" rx="3.5"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+            video: '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="3"/>',
+            music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+            avatar: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>',
+            download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+            send: '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+            clip: '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+            link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+            doc: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+            share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>',
+            trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+            close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+            support: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/>',
+            card: '<rect width="20" height="14" x="2" y="5" rx="3"/><line x1="2" x2="22" y1="10" y2="10"/>',
+            users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+            search: '<circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/>',
+            plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+            grid: '<rect width="7" height="7" x="3" y="3" rx="2"/><rect width="7" height="7" x="14" y="3" rx="2"/><rect width="7" height="7" x="14" y="14" rx="2"/><rect width="7" height="7" x="3" y="14" rx="2"/>'
+        };
+        function icoSvg(name) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+        }
+        function applyIcons(root) {
+            (root || document).querySelectorAll('[data-ico]').forEach(el => { if (!el.firstChild) el.innerHTML = icoSvg(el.dataset.ico); });
+        }
+        applyIcons();
+
         let userCoins = 0;
         document.getElementById('coins').innerText = '…';
 
@@ -744,12 +820,12 @@
         }
 
         let toastTimer = null;
-        function showToast(text) {
+        function showToast(text, ms) {
             const el = document.getElementById('toast');
             el.textContent = text;
             el.style.display = 'block';
             clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { el.style.display = 'none'; }, 1800);
+            toastTimer = setTimeout(() => { el.style.display = 'none'; }, ms || 1800);
         }
 
         // Создаёт элемент медиа. big=true — для окна просмотра, false — для карточки
@@ -794,13 +870,15 @@
             list.forEach((item, idx) => {
                 if (currentFilter === 'all' || item.category === currentFilter) rows.push({ item, idx });
             });
+            const pend = getPending().filter(e => currentFilter === 'all' || e.category === currentFilter);
+            const fails = failedJobs.filter(e => currentFilter === 'all' || e.category === currentFilter);
 
-            if (rows.length === 0) {
+            if (rows.length === 0 && pend.length === 0 && fails.length === 0) {
                 const empty = document.createElement('div');
                 empty.className = 'empty-history';
                 const icon = document.createElement('div');
                 icon.className = 'empty-icon';
-                icon.textContent = '🔲';
+                icon.innerHTML = icoSvg('grid').replace('<svg ', '<svg class="ico" ');
                 const txt = document.createElement('p');
                 txt.style.cssText = 'color:var(--text-secondary); font-size:14px;';
                 txt.textContent = 'История пока пуста';
@@ -816,6 +894,8 @@
 
             const grid = document.createElement('div');
             grid.className = 'history-grid';
+            pend.slice().reverse().forEach(e => grid.appendChild(makePendingCard(e)));
+            fails.forEach(f => grid.appendChild(makeFailedCard(f)));
             rows.forEach(({ item, idx }) => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
@@ -845,7 +925,68 @@
                 grid.appendChild(card);
             });
             container.appendChild(grid);
+            updatePendingCards();
         }
+
+        // Сколько обычно ждать
+        const WAIT_HINT = { video: 'Видео обычно делается 2–6 минут', avatar: 'Аватар обычно делается 2–6 минут', image: 'Картинка обычно готовится до минуты', audio: 'Аудио обычно готовится 1–2 минуты' };
+
+        function makePendingCard(e) {
+            const card = document.createElement('div');
+            card.className = 'history-card pending';
+            const media = document.createElement('div');
+            media.className = 'pend-media';
+            const sp = document.createElement('div'); sp.className = 'spin';
+            const tm = document.createElement('div'); tm.className = 'pend-timer'; tm.dataset.job = e.job; tm.dataset.ts = String(e.ts || Date.now());
+            const st = document.createElement('div'); st.style.cssText = 'font-size:11px; font-weight:700;'; st.dataset.jobStatus = e.job;
+            media.appendChild(sp); media.appendChild(tm); media.appendChild(st);
+            card.appendChild(media);
+            const info = document.createElement('div');
+            info.className = 'history-info';
+            const top = document.createElement('div');
+            const pr = document.createElement('div'); pr.className = 'history-prompt'; pr.textContent = e.prompt || 'Без запроса';
+            const meta = document.createElement('div'); meta.className = 'history-meta'; meta.textContent = `${e.name} • списано ${e.cost} ⚡`;
+            top.appendChild(pr); top.appendChild(meta);
+            const hint = document.createElement('div'); hint.className = 'history-meta'; hint.style.marginBottom = '0';
+            hint.textContent = (WAIT_HINT[e.category] || 'Идёт генерация') + '. Результат появится здесь сам, приложение можно закрыть.';
+            info.appendChild(top); info.appendChild(hint);
+            card.appendChild(info);
+            return card;
+        }
+
+        function makeFailedCard(f) {
+            const card = document.createElement('div');
+            card.className = 'history-card pending pend-fail';
+            const media = document.createElement('div');
+            media.className = 'pend-media';
+            const x = document.createElement('div'); x.style.cssText = 'font-size:34px; font-weight:800;'; x.textContent = '!';
+            const t = document.createElement('div'); t.style.cssText = 'font-size:11px; font-weight:700; padding:0 10px; text-align:center;'; t.textContent = 'Не получилось';
+            media.appendChild(x); media.appendChild(t);
+            card.appendChild(media);
+            const info = document.createElement('div');
+            info.className = 'history-info';
+            const top = document.createElement('div');
+            const pr = document.createElement('div'); pr.className = 'history-prompt'; pr.textContent = f.error;
+            const meta = document.createElement('div'); meta.className = 'history-meta'; meta.textContent = `${f.name} • ${f.cost} ⚡ возвращены`;
+            top.appendChild(pr); top.appendChild(meta);
+            const btn = document.createElement('div'); btn.className = 'history-btn'; btn.textContent = 'Убрать';
+            btn.addEventListener('click', () => { failedJobs = failedJobs.filter(x => x.id !== f.id); renderHistory(); });
+            info.appendChild(top); info.appendChild(btn);
+            card.appendChild(info);
+            return card;
+        }
+
+        // Обновляет таймеры и статус у карточек «генерируется» (раз в секунду, пока открыта История)
+        function updatePendingCards() {
+            document.querySelectorAll('.pend-timer').forEach(el => {
+                el.textContent = fmtTime(Date.now() - Number(el.dataset.ts));
+            });
+            document.querySelectorAll('[data-job-status]').forEach(el => {
+                const stt = jobState[el.dataset.jobStatus];
+                el.textContent = stt === 'IN_PROGRESS' ? 'Генерируется…' : stt === 'IN_QUEUE' ? 'В очереди…' : 'Отправлено…';
+            });
+        }
+        setInterval(() => { if (document.getElementById('page-history').classList.contains('active-page')) updatePendingCards(); }, 1000);
 
         // ===== ПРОСМОТР РЕЗУЛЬТАТА =====
         let viewerIdx = -1;
@@ -870,6 +1011,7 @@
             }
             stage.appendChild(media);
 
+            document.getElementById('va-file').style.display = item.category === 'image' ? '' : 'none';
             document.getElementById('viewer-prompt').textContent = item.prompt || 'Без запроса';
             document.getElementById('viewer-meta').textContent = `${item.model} • ${item.date}`;
             document.getElementById('viewer-modal').style.display = 'block';
@@ -892,25 +1034,62 @@
             return `hydra-${item.category}-${Date.now()}.${ext}`;
         }
 
-        async function viewerDownload() {
+        const blobCache = {};   // файл, который уже скачали для сохранения (чтобы второе нажатие было мгновенным)
+
+        async function getBlobFor(url) {
+            if (blobCache[url]) return { blob: blobCache[url], cached: true };
+            const r = await fetch(url);
+            if (!r.ok) throw new Error('bad status');
+            const blob = await r.blob();
+            Object.keys(blobCache).forEach(k => delete blobCache[k]);   // держим в памяти только один файл
+            blobCache[url] = blob;
+            return { blob, cached: false };
+        }
+
+        function mimeFor(item, blob) {
+            if (blob && blob.type && blob.type !== 'application/octet-stream') return blob.type;
+            return { image: 'image/jpeg', video: 'video/mp4', avatar: 'video/mp4', audio: 'audio/mpeg' }[item.category] || 'application/octet-stream';
+        }
+
+        // Сохранение в галерею. Порядок: 1) системное «Поделиться» с файлом (на iPhone там «Сохранить изображение/видео»),
+        // 2) загрузка средствами Telegram, 3) обычное скачивание, 4) открыть файл во внешнем браузере.
+        async function viewerSave() {
             const item = currentViewerItem();
             const url = item && safeUrl(item.url);
             if (!url) { showToast('Файл недоступен'); return; }
             const name = fileNameFor(item);
 
-            // 1) Встроенное скачивание Telegram (новые версии)
+            if (navigator.share && navigator.canShare) {
+                try {
+                    if (!blobCache[url]) showToast('Готовим файл…', 2500);
+                    const { blob, cached } = await getBlobFor(url);
+                    const file = new File([blob], name, { type: mimeFor(item, blob) });
+                    if (navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({ files: [file] });
+                            return;
+                        } catch (e) {
+                            if (e && e.name === 'AbortError') return;
+                            if (e && e.name === 'NotAllowedError' && !cached) {
+                                // пока файл грузился, система «забыла» о нажатии: файл уже готов, второе нажатие сработает сразу
+                                showToast('Файл загружен. Нажмите «Сохранить в галерею» ещё раз', 4500);
+                                return;
+                            }
+                        }
+                    }
+                } catch (e) { /* нет доступа к файлу из браузера: идём дальше */ }
+            }
+
             try {
                 if (typeof tg.downloadFile === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) {
                     tg.downloadFile({ url, file_name: name });
+                    showToast('Файл сохраняется. Если его нет в галерее, нажмите «В чат с ботом»', 4500);
                     return;
                 }
             } catch (e) {}
 
-            // 2) Скачивание через браузер
             try {
-                const r = await fetch(url);
-                if (!r.ok) throw new Error('bad status');
-                const blob = await r.blob();
+                const { blob } = await getBlobFor(url);
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
                 a.download = name;
@@ -918,13 +1097,51 @@
                 a.click();
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-                showToast('Скачивание началось');
+                showToast('Скачивание началось. Если файла нет в галерее, нажмите «В чат с ботом»', 4500);
                 return;
             } catch (e) {}
 
-            // 3) Запасной вариант — открыть файл во внешнем браузере
             tg.openLink(url);
         }
+
+        // Присылает файл в чат с ботом. Оттуда он сохраняется в галерею в полном качестве.
+        let sendingToBot = false;
+        async function viewerSendBot(asFile) {
+            const item = currentViewerItem();
+            const url = item && safeUrl(item.url);
+            if (!url) { showToast('Файл недоступен'); return; }
+            if (sendingToBot) return;
+            sendingToBot = true;
+            showToast('Отправляем в чат с ботом…', 2500);
+            try {
+                const r = await apiFetch('/api/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, category: item.category, as_file: !!asFile })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (r.ok && d.success) {
+                    showToast(d.link_only ? 'Файл очень большой: прислали ссылку в чат с ботом' : '✅ Отправили в чат с ботом. Откройте его и сохраните файл в галерею', 5000);
+                } else if (r.status === 409) {
+                    if (confirm(d.error + '\n\nОткрыть чат с ботом?')) {
+                        if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink('https://t.me/HydraAIBot'); else window.open('https://t.me/HydraAIBot', '_blank');
+                    }
+                } else {
+                    alert(d.error || 'Не удалось отправить файл');
+                }
+            } catch (e) {
+                alert('Нет связи с сервером');
+            } finally {
+                sendingToBot = false;
+            }
+        }
+
+        // Тап по свободному месту закрывает просмотр
+        document.getElementById('viewer-modal').addEventListener('click', e => {
+            const t = e.target;
+            if (t.closest('.viewer-rail') || t.closest('.viewer-stage img, .viewer-stage video, .viewer-stage audio, .viewer-prompt')) return;
+            closeViewer();
+        });
 
         function copyText(text, okMsg) {
             const done = () => showToast(okMsg);
@@ -1011,7 +1228,7 @@
         }
 
         function closeModal() { document.getElementById('gen-modal').style.display = 'none'; }
-        function openShopModal() { document.getElementById('shop-modal').style.display = 'block'; }
+        function openShopModal() { document.getElementById('shop-modal').style.display = 'block'; refreshBalance(); }
         function closeShopModal() { document.getElementById('shop-modal').style.display = 'none'; }
 
         function currentModel() {
@@ -1401,6 +1618,16 @@
         }
         function setPending(list) {
             localStorage.setItem('hydra_pending', JSON.stringify(list));
+            updateNavBadge();
+            if (document.getElementById('page-history').classList.contains('active-page')) renderHistory();
+        }
+        // Оранжевая цифра на «Истории»: сколько генераций сейчас идёт
+        function updateNavBadge() {
+            const n = getPending().length;
+            const b = document.getElementById('nav-badge');
+            if (!b) return;
+            b.textContent = String(n);
+            b.style.display = n ? 'block' : 'none';
         }
         function setCoins(n) {
             userCoins = n;
@@ -1453,14 +1680,52 @@
             }
         }
 
+        // ===== ФОНОВЫЕ ЗАДАЧИ: результат появляется в Истории сам =====
+        const tracking = new Set();     // задачи, которые приложение сейчас ждёт
+        const jobState = {};            // job -> 'IN_QUEUE' | 'IN_PROGRESS'
+        let failedJobs = [];            // неудавшиеся задачи этой сессии (⚡ уже возвращены)
+
+        // Отправляет задачу на сервер. Если приняли, ⚡ уже списаны, а задача записана как «идёт».
+        async function postGenerate(m, v) {
+            const res = await apiFetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: m.id, values: v, audio_seconds: v.audio_seconds })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                const msg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || (res.status === 413 ? 'Файлы слишком большие' : 'Неизвестная ошибка'));
+                return { ok: false, error: msg };
+            }
+            setCoins(data.new_balance);
+            const entry = { job: data.job, name: m.name, category: m.category, prompt: v.prompt || '', cost: data.cost, ts: Date.now() };
+            setPending(getPending().concat(entry));
+            return { ok: true, entry, cost: data.cost };
+        }
+
+        function jobFailed(entry, result) {
+            failedJobs.unshift({ id: entry.job, name: entry.name, prompt: entry.prompt, error: result.error || 'Ошибка генерации', cost: entry.cost, category: entry.category });
+            failedJobs = failedJobs.slice(0, 5);
+        }
+
+        // Ждёт результат в фоне. Пользователь за это время может заниматься чем угодно.
+        function trackJob(entry) {
+            if (tracking.has(entry.job)) return;
+            tracking.add(entry.job);
+            waitForJob(entry, d => { jobState[entry.job] = d.status; updatePendingCards(); }).then(result => {
+                tracking.delete(entry.job);
+                delete jobState[entry.job];
+                if (!result.ok) jobFailed(entry, result);
+                finishJob(entry, result);
+                renderHistory();
+                if (result.ok) showToast('✅ Готово: результат в Истории', 3000);
+                else showToast('Генерация не удалась, ⚡ возвращены', 3500);
+            });
+        }
+
         // Если приложение закрыли во время генерации — продолжаем ждать при следующем открытии
         function resumePending() {
-            getPending().forEach(entry => {
-                waitForJob(entry).then(result => {
-                    finishJob(entry, result);
-                    showToast(result.ok ? 'Готово: результат в истории' : 'Генерация не удалась, ⚡ возвращены');
-                });
-            });
+            getPending().forEach(entry => trackJob(entry));
         }
 
         function fmtTime(ms) {
@@ -1492,40 +1757,12 @@
             btn.innerText = '⏳ Отправка...';
 
             try {
-                const res = await apiFetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: m.id,
-                        values: v,
-                        audio_seconds: v.audio_seconds
-                    })
-                });
-                const data = await res.json().catch(() => ({}));
-
-                if (!res.ok || !data.success) {
-                    const errorMsg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || (res.status === 413 ? 'Файлы слишком большие' : 'Неизвестная ошибка'));
-                    alert('Ошибка генерации: ' + errorMsg);
-                    return;
-                }
-
-                setCoins(data.new_balance);
-                const entry = { job: data.job, name: m.name, category: m.category, prompt: v.prompt || '', cost: data.cost, ts: Date.now() };
-                setPending(getPending().concat(entry));
-
-                const result = await waitForJob(entry, (d, ms) => {
-                    const stage = d.status === 'IN_PROGRESS' ? 'Генерация' : 'В очереди';
-                    btn.innerText = `⏳ ${stage}... ${fmtTime(ms)}`;
-                });
-                finishJob(entry, result);
-
-                if (result.ok) {
-                    closeModal();
-                    switchPage('history');
-                    showToast(`Готово! Списано: ${data.cost} ⚡`);
-                } else {
-                    alert('Ошибка генерации: ' + result.error + `\n\nВозвращено ${data.cost} ⚡`);
-                }
+                const out = await postGenerate(m, v);
+                if (!out.ok) { alert('Ошибка генерации: ' + out.error); return; }
+                closeModal();
+                switchPage('history');
+                trackJob(out.entry);
+                showToast(`Запущено, списано ${out.cost} ⚡. Результат появится в Истории`, 3500);
             } catch (e) {
                 alert('Ошибка сети при обращении к серверу');
             } finally {
@@ -1601,7 +1838,10 @@
             th.appendChild(v);
             if (trendObserver) trendObserver.observe(v);
             const n = trendSlots(t).length;
-            th.appendChild(payEl('div', n ? '👤 ' + n : 'без фото', undefined)).className = 'trend-chip';
+            const chip = payEl('div', n ? String(n) : 'без фото', undefined);
+            chip.className = 'trend-chip';
+            if (n) { const ic = document.createElement('span'); ic.className = 'ico'; ic.innerHTML = icoSvg('users'); chip.insertBefore(ic, chip.firstChild); }
+            th.appendChild(chip);
             card.appendChild(th);
             const info = document.createElement('div');
             info.className = 'trend-info';
@@ -1793,26 +2033,22 @@
             body.appendChild(saveBtn);
         }
 
-        // Отправляет задачу, ждёт результат. Возвращает { ok, url, cost, error }. Общий код для персонажей и трендов.
-        async function submitAndWait(m, v, btn, idleText) {
-            const res = await apiFetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: m.id, values: v, audio_seconds: v.audio_seconds })
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) {
-                const msg = typeof data.error === 'object' ? JSON.stringify(data.error) : (data.error || (res.status === 413 ? 'Файлы слишком большие' : 'Неизвестная ошибка'));
-                return { ok: false, error: msg, refunded: false };
-            }
-            setCoins(data.new_balance);
-            const entry = { job: data.job, name: m.name, category: m.category, prompt: v.prompt || '', cost: data.cost, ts: Date.now() };
-            setPending(getPending().concat(entry));
+        // Отправляет задачу и ждёт результат прямо здесь (нужно для создания персонажа). Возвращает { ok, url, cost, error }.
+        async function submitAndWait(m, v, btn) {
+            const out = await postGenerate(m, v);
+            if (!out.ok) return { ok: false, error: out.error, refunded: false };
+            const entry = out.entry;
+            tracking.add(entry.job);
             const result = await waitForJob(entry, (d, ms) => {
+                jobState[entry.job] = d.status;
                 btn.innerText = '⏳ ' + (d.status === 'IN_PROGRESS' ? 'Генерация' : 'В очереди') + '... ' + fmtTime(ms);
+                updatePendingCards();
             });
+            tracking.delete(entry.job);
+            delete jobState[entry.job];
+            if (!result.ok) jobFailed(entry, result);
             finishJob(entry, result);
-            return Object.assign({ cost: data.cost, refunded: !result.ok }, result);
+            return Object.assign({ cost: out.cost, refunded: !result.ok }, result);
         }
 
         async function urlToCardImage(url) {
@@ -2013,13 +2249,14 @@
             st.busy = true;
             ui.btn.disabled = true; ui.btn.innerText = '⏳ Отправка...';
             try {
-                const out = await submitAndWait(m, v, ui.btn);
+                const out = await postGenerate(m, v);
                 if (out.ok) {
                     closeTrend();
                     switchPage('history');
-                    showToast('Готово! Списано: ' + out.cost + ' ⚡');
+                    trackJob(out.entry);
+                    showToast('Запущено, списано ' + out.cost + ' ⚡. Результат появится в Истории', 3500);
                 } else {
-                    alert('Ошибка генерации: ' + out.error + (out.refunded ? '\n\nВозвращено ' + cost + ' ⚡' : ''));
+                    alert('Ошибка генерации: ' + out.error);
                 }
             } catch (e) {
                 alert('Ошибка сети при обращении к серверу');
@@ -2207,6 +2444,32 @@
         }
 
         let myInfo = null;
+        let balanceLoaded = false;
+        let lastBalanceRefresh = Date.now();
+
+        // Тихое обновление баланса без перезахода в приложение
+        async function refreshBalance() {
+            lastBalanceRefresh = Date.now();
+            try {
+                const r = await apiFetch('/api/me');
+                if (!r.ok) return;
+                const d = await r.json();
+                const prev = userCoins;
+                myInfo = d;
+                setCoins(d.coins);
+                renderMyPayments();
+                renderRefStats();
+                if (balanceLoaded && d.coins > prev) showToast('✅ Баланс обновлён: +' + (d.coins - prev) + ' ⚡', 4500);
+            } catch (e) { /* без связи просто попробуем позже */ }
+        }
+        const hasReviewPayment = () => !!(myInfo && (myInfo.payments || []).some(p => p.status === 'review'));
+        // Пока платёж на проверке, смотрим баланс каждые 10 с. Иначе только при возврате в приложение и раз в 5 минут.
+        setInterval(() => {
+            if (document.hidden) return;
+            if (hasReviewPayment() || Date.now() - lastBalanceRefresh > 300000) refreshBalance();
+        }, 10000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && balanceLoaded) refreshBalance(); });
+        try { if (typeof tg.onEvent === 'function') tg.onEvent('activated', () => { if (balanceLoaded) refreshBalance(); }); } catch (e) {}
 
         // Данные пользователя с сервера: баланс ⚡, реферальная ссылка и статистика
         async function loadMe() {
@@ -2219,6 +2482,8 @@
                     return;
                 }
                 myInfo = d;
+                balanceLoaded = true;
+                lastBalanceRefresh = Date.now();
                 setCoins(d.coins);
                 document.getElementById('ref-link-input').value = d.ref_link;
                 renderRefStats();
@@ -2330,6 +2595,7 @@
         } catch (e) {}
 
         renderPackages();
+        updateNavBadge();
         renderHistory();
         renderCharStrip();
         loadCatalog().then(loadTrends);
