@@ -279,7 +279,7 @@
             </div>
             <div class="promo-card">
                 <span class="promo-tag">ПАРТНЕРАМ</span>
-                <div class="promo-title">15% с покупок в TJS</div>
+                <div class="promo-title">до 20% с покупок в TJS</div>
                 <button class="promo-btn" onclick="switchPage('profile')">Получить ссылку</button>
             </div>
         </div>
@@ -368,7 +368,7 @@
         <div class="partner-box">
             <h3 style="margin:0 0 6px 0;">Партнёрская программа</h3>
             <p style="font-size:12px; color:var(--text-secondary); margin:0;">
-                Приглашайте друзей — получайте <b>15%</b> с их пополнений и ещё <b>3%</b> с пополнений тех, кого пригласили они.
+                Приглашайте друзей и получайте процент с каждого их пополнения: <b>5%</b>, с 20 платящих приглашённых <b>10%</b>, с 50 — <b>15%</b>, со 100 — <b>20%</b>.
             </p>
             <label style="margin-top:10px;">Ваша ссылка:</label>
             <input type="text" id="ref-link-input" readonly value="Загрузка...">
@@ -394,7 +394,19 @@
             </div>
             <div class="shop-note">Цены в сомони (TJS) и долларах. Курс: 1 $ = 10 TJS</div>
             <div class="packages-list" id="packages-list"></div>
+            <div id="my-payments" style="margin:10px 0; font-size:12px; color:var(--text-secondary);"></div>
             <button class="btn-main" style="background:var(--card-bg); border:1px solid var(--border-color);" onclick="closeShopModal()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ОПЛАТЫ ПЕРЕВОДОМ -->
+    <div class="modal-overlay" id="pay-modal">
+        <div class="modal-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                <h3 style="margin:0;" id="pay-title">Оплата</h3>
+                <span style="cursor:pointer; font-size:20px;" onclick="closePayModal()">✕</span>
+            </div>
+            <div id="pay-body"></div>
         </div>
     </div>
 
@@ -1323,30 +1335,159 @@
             }
         }
 
-        // ПОКУПКА ПАКЕТА: клиент отправляет только id пакета.
-        // Цену и начисление ⚡ определяет сервер после подтверждения оплаты банком.
-        // Бесплатное начисление токенов с клиента удалено.
+        // ===== ОПЛАТА ПЕРЕВОДОМ =====
+        // Цену и количество ⚡ определяет сервер. ⚡ зачисляются только после того,
+        // как администратор подтвердит поступление денег.
+        let payFlow = null;
+
+        function closePayModal() { document.getElementById('pay-modal').style.display = 'none'; }
+
+        function payEl(tag, text, css) {
+            const e = document.createElement(tag);
+            if (text !== undefined) e.textContent = text;
+            if (css) e.style.cssText = css;
+            return e;
+        }
+
+        function payShow(title, nodes) {
+            document.getElementById('pay-title').textContent = title;
+            const body = document.getElementById('pay-body');
+            body.textContent = '';
+            nodes.forEach(n => body.appendChild(n));
+            document.getElementById('pay-modal').style.display = 'block';
+        }
+
+        function payButton(text, onclick, secondary) {
+            const b = payEl('button', text);
+            b.className = 'btn-main';
+            if (secondary) b.style.cssText = 'background:var(--card-bg); border:1px solid var(--border-color);';
+            b.addEventListener('click', onclick);
+            return b;
+        }
+
         async function buyPackage(pkgId) {
             const pkg = PACKAGES.find(p => p.id === pkgId);
             if (!pkg) return;
-
+            closeShopModal();
+            payFlow = { pkg };
+            payShow(`${pkg.name} — ${pkg.tokens} ⚡`, [payEl('div', 'Загрузка...', 'color:var(--text-secondary);')]);
             try {
-                const res = await apiFetch('/api/payments/create', {
+                const r = await apiFetch('/api/payments/methods');
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) { payShow('Оплата', [payEl('div', d.error || 'Ошибка загрузки'), payButton('Закрыть', closePayModal, true)]); return; }
+                if (!d.methods || !d.methods.length) {
+                    payShow('Оплата', [payEl('div', 'Оплата переводом скоро будет доступна.'), payButton('Закрыть', closePayModal, true)]);
+                    return;
+                }
+                const nodes = [
+                    payEl('div', `К оплате: ${pkg.tjs} TJS (≈ $${formatNum(+(pkg.tjs / USD_RATE).toFixed(2))})`, 'font-weight:800; margin-bottom:6px;'),
+                    payEl('div', 'Выберите банк и способ перевода:', 'font-size:12px; color:var(--text-secondary); margin-bottom:8px;')
+                ];
+                d.methods.forEach(m => {
+                    nodes.push(payButton(`${m.bank} — ${m.type === 'card' ? 'на карту' : 'по номеру телефона'}`, () => createPayment(m.id), true));
+                });
+                nodes.push(payButton('Отмена', closePayModal, true));
+                payShow('Оплата переводом', nodes);
+            } catch (e) {
+                payShow('Оплата', [payEl('div', 'Нет связи с сервером'), payButton('Закрыть', closePayModal, true)]);
+            }
+        }
+
+        async function createPayment(methodId) {
+            try {
+                const r = await apiFetch('/api/payments/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ package_id: pkg.id })
+                    body: JSON.stringify({ package_id: payFlow.pkg.id, method_id: methodId })
                 });
-                const data = await res.json().catch(() => ({}));
-
-                if (res.ok && data.payment_url) {
-                    closeShopModal();
-                    tg.openLink(data.payment_url);
-                } else {
-                    alert(data.error || "Оплата банковской картой скоро будет доступна.");
-                }
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || !d.success) { alert(d.error || 'Не удалось создать платёж'); return; }
+                payFlow.payment = d.payment;
+                payFlow.file = null;
+                showPayDetails();
             } catch (e) {
-                alert("Оплата банковской картой скоро будет доступна.");
+                alert('Нет связи с сервером');
             }
+        }
+
+        function copyText(text, label) {
+            const done = () => showToast(label + ' скопирован');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+            else done();
+        }
+
+        function showPayDetails() {
+            const p = payFlow.payment, m = p.method;
+            const row = (k, v, copy) => {
+                const d = payEl('div', undefined, 'display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-color);');
+                const l = payEl('div', undefined, 'min-width:0;');
+                l.appendChild(payEl('div', k, 'font-size:11px; color:var(--text-secondary);'));
+                l.appendChild(payEl('div', v, 'font-weight:800; word-break:break-all;'));
+                d.appendChild(l);
+                if (copy) {
+                    const c = payEl('button', '📋', 'background:none; border:none; font-size:18px; cursor:pointer;');
+                    c.addEventListener('click', () => copyText(copy, k));
+                    d.appendChild(c);
+                }
+                return d;
+            };
+            const nodes = [
+                payEl('div', `Платёж №${p.id}`, 'font-size:12px; color:var(--text-secondary); margin-bottom:4px;'),
+                row('Сумма перевода', `${p.tjs} TJS`, String(p.tjs)),
+                row('Банк', m.bank),
+                row(m.type === 'card' ? 'Номер карты' : 'Номер телефона', m.number, m.number.replace(/\s+/g, '')),
+                row('Получатель', m.holder || '—'),
+                payEl('div', `После оплаты вы получите ${p.coins} ⚡. Переведите точную сумму, затем нажмите «Я оплатил». Можно приложить фото или PDF чека, так мы подтвердим быстрее.`, 'font-size:12px; color:var(--text-secondary); margin:10px 0;')
+            ];
+            const fileInput = payEl('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*,application/pdf';
+            fileInput.style.cssText = 'width:100%; margin-bottom:6px;';
+            const fileNote = payEl('div', 'Чек не обязателен', 'font-size:11px; color:var(--text-secondary); margin-bottom:6px;');
+            fileInput.addEventListener('change', async () => {
+                payFlow.file = null;
+                const f = fileInput.files && fileInput.files[0];
+                if (!f) { fileNote.textContent = 'Чек не обязателен'; return; }
+                try {
+                    if (f.type === 'application/pdf') {
+                        if (f.size > 2.4 * 1024 * 1024) throw new Error('PDF больше 2,4 МБ');
+                        const uri = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(new Error('Не удалось прочитать файл')); fr.readAsDataURL(f); });
+                        payFlow.file = { uri, name: f.name };
+                    } else if (f.type.startsWith('image/')) {
+                        payFlow.file = { uri: await compressImage(f, 900 * 1024), name: 'receipt.jpg' };
+                    } else throw new Error('Допустимы фото и PDF');
+                    fileNote.textContent = '✅ ' + f.name;
+                } catch (e) {
+                    fileInput.value = '';
+                    fileNote.textContent = '⚠ ' + e.message;
+                }
+            });
+            nodes.push(fileInput, fileNote);
+            const btn = payButton('✅ Я оплатил', async () => {
+                btn.disabled = true; btn.textContent = 'Отправка...';
+                try {
+                    const r = await apiFetch('/api/payments/paid', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ payment_id: p.id, receipt: payFlow.file ? payFlow.file.uri : undefined, receipt_name: payFlow.file ? payFlow.file.name : undefined })
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (r.ok && d.success) {
+                        payShow('Заявка отправлена ✅', [
+                            payEl('div', `Платёж №${p.id}: как только мы увидим поступление, ${p.coins} ⚡ появятся на вашем балансе, и бот пришлёт сообщение.`, 'margin-bottom:10px;'),
+                            payButton('Готово', () => { closePayModal(); loadMe(); }, true)
+                        ]);
+                    } else {
+                        alert(d.error || (r.status === 413 ? 'Файл слишком большой' : 'Не удалось отправить заявку'));
+                        btn.disabled = false; btn.textContent = '✅ Я оплатил';
+                    }
+                } catch (e) {
+                    alert('Нет связи с сервером');
+                    btn.disabled = false; btn.textContent = '✅ Я оплатил';
+                }
+            });
+            nodes.push(btn, payButton('Закрыть', closePayModal, true));
+            payShow('Реквизиты для перевода', nodes);
         }
 
         function copyLink() {
@@ -1388,9 +1529,28 @@
                 setCoins(d.coins);
                 document.getElementById('ref-link-input').value = d.ref_link;
                 renderRefStats();
+                renderMyPayments();
             } catch (e) {
                 document.getElementById('ref-link-input').value = 'Нет связи с сервером';
             }
+        }
+
+        function renderMyPayments() {
+            const box = document.getElementById('my-payments');
+            if (!box) return;
+            box.textContent = '';
+            const list = (myInfo && myInfo.payments) || [];
+            if (!list.length) return;
+            const names = { pending: 'ждёт вашей оплаты', review: 'проверяем оплату', paid: 'зачислено', rejected: 'отклонён' };
+            const h = document.createElement('div');
+            h.style.fontWeight = '800';
+            h.textContent = 'Последние платежи';
+            box.appendChild(h);
+            list.forEach(p => {
+                const d = document.createElement('div');
+                d.textContent = `№${p.id}: ${p.tjs} TJS, ${p.coins} ⚡ — ${names[p.status] || p.status}`;
+                box.appendChild(d);
+            });
         }
 
         function renderRefStats() {
@@ -1401,8 +1561,9 @@
             const rows = [
                 ['Партнёрский баланс', m.ref_balance.toFixed(2) + ' TJS'],
                 ['Заработано всего', m.ref_earned.toFixed(2) + ' TJS'],
-                ['Приглашено (1-й уровень)', String(m.ref_l1)],
-                ['Приглашено (2-й уровень)', String(m.ref_l2)]
+                ['Приглашено всего', String(m.ref_l1)],
+                ['Из них пополнили баланс', String(m.ref_paying)],
+                ['Ваш процент сейчас', Math.round(m.ref_rate * 100) + '%' + (m.ref_partner && m.ref_partner.rate2 ? ' + ' + Math.round(m.ref_partner.rate2 * 100) + '% от бонуса приглашённого партнёра' : '')]
             ];
             rows.forEach(([k, v]) => {
                 const row = document.createElement('div');
@@ -1412,6 +1573,16 @@
                 row.appendChild(a); row.appendChild(b);
                 box.appendChild(row);
             });
+            if (m.ref_partner) {
+                const t = document.createElement('div');
+                t.textContent = 'Вам подключены партнёрские условия';
+                box.appendChild(t);
+            }
+            if (m.ref_next) {
+                const t = document.createElement('div');
+                t.textContent = `До ${Math.round(m.ref_next.rate * 100)}%: ещё ${m.ref_next.at - m.ref_paying} платящих приглашённых`;
+                box.appendChild(t);
+            }
             if (m.withdraw_pending > 0) {
                 const p = document.createElement('div');
                 p.textContent = `Заявка на вывод ${m.withdraw_pending.toFixed(2)} TJS в обработке`;
