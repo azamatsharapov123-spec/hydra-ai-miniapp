@@ -175,6 +175,35 @@
         .pkg-usd { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
         .shop-note { font-size: 11px; color: var(--text-secondary); margin: -4px 0 12px 0; }
 
+        /* ===== ПРОСМОТР ИЗ ИСТОРИИ ===== */
+        .viewer-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; z-index: 300; }
+        .viewer-body { display: flex; height: 100%; padding: 12px; box-sizing: border-box; gap: 10px; }
+        .viewer-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .viewer-stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: auto; }
+        .viewer-stage img, .viewer-stage video { max-width: 100%; max-height: 100%; border-radius: 12px; object-fit: contain; }
+        .viewer-stage.zoomed { align-items: flex-start; justify-content: flex-start; }
+        .viewer-stage.zoomed img { max-width: none; max-height: none; width: 220%; }
+        .viewer-stage audio { width: 100%; }
+        .viewer-audio-icon { font-size: 70px; text-align: center; margin-bottom: 14px; }
+        .viewer-info { padding-top: 10px; }
+        .viewer-prompt { font-size: 13px; line-height: 1.35; max-height: 72px; overflow-y: auto; }
+        .viewer-meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+        .viewer-rail { display: flex; flex-direction: column; gap: 8px; justify-content: center; width: 76px; flex-shrink: 0; }
+        .viewer-act {
+            background: var(--card-bg); border: 1px solid var(--border-color); color: #fff;
+            border-radius: 14px; padding: 9px 2px; text-align: center; font-size: 10px; font-weight: 700; cursor: pointer;
+        }
+        .viewer-act .ic { font-size: 20px; display: block; margin-bottom: 2px; }
+        .viewer-act.primary { background: var(--accent-gradient); border-color: transparent; }
+        .viewer-act.danger { color: #fca5a5; }
+        .toast {
+            position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+            background: rgba(30,30,34,0.97); border: 1px solid var(--border-color); color: #fff;
+            padding: 9px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            z-index: 400; display: none;
+        }
+        .history-card .history-media { cursor: pointer; }
+
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
@@ -411,6 +440,12 @@
                         <span id="dur-val" style="font-weight:700; color:var(--accent-color); min-width:55px;">5 сек</span>
                     </div>
                 </div>
+
+                <div id="group-sound" style="display:none; margin-top:12px;">
+                    <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+                        <input type="checkbox" id="vid-audio" checked onchange="recalculateCost()"> Со звуком
+                    </label>
+                </div>
             </div>
 
             <!-- ПОЛЯ ДЛЯ АУДИО -->
@@ -434,6 +469,28 @@
             <button class="btn-main" id="btn-modal-gen" onclick="executeModalGen()">🚀 Сгенерировать</button>
         </div>
     </div>
+
+    <!-- ПРОСМОТР РЕЗУЛЬТАТА ИЗ ИСТОРИИ -->
+    <div class="viewer-overlay" id="viewer-modal">
+        <div class="viewer-body">
+            <div class="viewer-main">
+                <div class="viewer-stage" id="viewer-stage"></div>
+                <div class="viewer-info">
+                    <div class="viewer-prompt" id="viewer-prompt"></div>
+                    <div class="viewer-meta" id="viewer-meta"></div>
+                </div>
+            </div>
+            <div class="viewer-rail">
+                <div class="viewer-act primary" onclick="viewerDownload()"><span class="ic">⬇</span>Скачать</div>
+                <div class="viewer-act" onclick="viewerCopyLink()"><span class="ic">🔗</span>Копировать ссылку</div>
+                <div class="viewer-act" onclick="viewerCopyPrompt()"><span class="ic">📝</span>Копировать промпт</div>
+                <div class="viewer-act" onclick="viewerShare()"><span class="ic">✈</span>Поделиться</div>
+                <div class="viewer-act danger" onclick="viewerDelete()"><span class="ic">🗑</span>Удалить</div>
+                <div class="viewer-act" onclick="closeViewer()"><span class="ic">✕</span>Закрыть</div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
 
     <!-- НИЖНЕЕ МЕНЮ -->
     <div class="nav-bar">
@@ -551,16 +608,16 @@
 
         const sortedModels = {
             image: [
-                { id: 'nanobanana-pro', name: 'NanoBanana Pro', baseCost: 4 },
+                { id: 'nanobanana-pro', name: 'NanoBanana Pro', group: 2, usd: { '1k': 0.15, '2k': 0.15, '4k': 0.30 }, tokens: { '1k': 5, '2k': 5, '4k': 12 } },
                 { id: 'nanobanana-2.1', name: 'Nano Banana 2.1', baseCost: 2 },
-                { id: 'nanobanana-1', name: 'Nano Banana 1', baseCost: 1 },
+                { id: 'nanobanana-1', name: 'Nano Banana 1', group: 2, usd: { '1k': 0.0398 } },
                 { id: 'nanobanana-2k', name: 'Nano Banana 2K', baseCost: 2 },
                 { id: 'nanobanana-2f', name: 'Nano Banana 2F', baseCost: 3 },
                 { id: 'qwen-edit', name: 'Qwen Image Edit', baseCost: 1 },
                 { id: 'grok-imagine', name: 'Grok Imagine', baseCost: 2 },
-                { id: 'seedream-5pro', name: 'Seedream 5 Pro', baseCost: 2 },
+                { id: 'seedream-5pro', name: 'Seedream 5 Pro', group: 2, usd: { '2k': 0.135, '4k': 0.135 } },
                 { id: 'seedream-1', name: 'Seedream 1', baseCost: 1 },
-                { id: 'seedream-4.5', name: 'Seedream 4.5', baseCost: 2 },
+                { id: 'seedream-4.5', name: 'Seedream 4.5', group: 2, usd: { '1k': 0.04, '2k': 0.04, '4k': 0.04 } },
                 { id: 'seedream-5lite', name: 'Seedream 5 Lite', baseCost: 1 },
                 { id: 'grok-imagine-2', name: 'Grok Imagine 2.0', baseCost: 3 },
                 { id: 'gpt-image-2.5', name: 'GPT Image 2.5', baseCost: 1 },
@@ -570,31 +627,31 @@
             video: [
                 { id: 'seedance-2.5', name: 'Seedance 2.5', baseCost: 28, maxDur: 30 },
                 { id: 'gemini-omni', name: 'Gemini Omni', baseCost: 18, maxDur: 15 },
-                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1', baseCost: 22, maxDur: 15 },
-                { id: 'veo-3.1', name: 'Veo 3.1', baseCost: 12, maxDur: 10 },
-                { id: 'veo-3-fast', name: 'Veo 3 Fast', baseCost: 9, maxDur: 10 },
+                { id: 'gemini-omni-1.1', name: 'Gemini Omni 1.1', group: 2, res: { '360p': 0.03, '720p': 0.10, '1080p': 0.15, '4k': 0.30 }, maxDur: 15 },
+                { id: 'veo-3.1', name: 'Veo 3.1', group: 1, res: { '720p': { on: 0.40, off: 0.20 }, '1080p': { on: 0.40, off: 0.20 }, '4k': { on: 0.60, off: 0.40 } }, minDur: 4, maxDur: 8, step: 2, defDur: 4, aspects: ['16:9', '9:16'] },
+                { id: 'veo-3-fast', name: 'Veo 3.1 Fast', group: 1, res: { '720p': { on: 0.15, off: 0.10 }, '1080p': { on: 0.15, off: 0.10 }, '4k': { on: 0.35, off: 0.30 } }, minDur: 4, maxDur: 8, step: 2, defDur: 4, aspects: ['16:9', '9:16'] },
                 { id: 'grok-video-1.5', name: 'Grok Video 1.5', baseCost: 15, maxDur: 10 },
-                { id: 'kling-3.0', name: 'Kling 3.0', baseCost: 20, maxDur: 15 },
+                { id: 'kling-3.0', name: 'Kling 3.0', group: 1, res: { 'Pro': { on: 0.168, off: 0.112 } }, maxDur: 15 },
                 { id: 'kling-3.0-mc', name: 'Kling 3.0 MC', baseCost: 25, maxDur: 15 },
                 { id: 'kling-3.0-turbo', name: 'Kling 3.0 Turbo', baseCost: 11, maxDur: 10 },
-                { id: 'kling-o3', name: 'Kling O3', baseCost: 19, maxDur: 15 },
+                { id: 'kling-o3', name: 'Kling O3', group: 2, res: { 'Pro': 0.14 }, maxDur: 15 },
                 { id: 'kling-o1', name: 'Kling O1', baseCost: 16, maxDur: 10 },
                 { id: 'kling-v1-avatar', name: 'Kling v1 Avatar Video', baseCost: 14, maxDur: 10 },
                 { id: 'kling-2.6-mc-k', name: 'Kling 2.6 MC-K', baseCost: 15, maxDur: 10 },
                 { id: 'kling-2.6-mc-f', name: 'Kling 2.6 MC-F', baseCost: 15, maxDur: 10 },
-                { id: 'kling-2.6', name: 'Kling 2.6 Standard', baseCost: 12, maxDur: 10 },
-                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', baseCost: 8, maxDur: 10 },
+                { id: 'kling-2.6', name: 'Kling 2.6', group: 2, res: { 'Pro': 0.07 }, maxDur: 10 },
+                { id: 'kling-turbo-2.5', name: 'Kling Turbo 2.5', group: 2, res: { 'Pro': 0.07 }, maxDur: 10 },
                 { id: 'kling-2.1', name: 'Kling 2.1 Standard', baseCost: 10, maxDur: 10 },
-                { id: 'wan-3.0', name: 'Wan 3.0 High-End', baseCost: 8, maxDur: 10 },
+                { id: 'wan-3.0', name: 'Wan 3.0 High-End', group: 2, res: { '480p': 0.05, '720p': 0.10, '1080p': 0.20 }, maxDur: 10 },
                 { id: 'wan-2.6', name: 'Wan 2.6 Fast', baseCost: 6, maxDur: 10 },
                 { id: 'wan-2.5', name: 'Wan 2.5 Fast', baseCost: 5, maxDur: 10 },
-                { id: 'seedance-2', name: 'Seedance 2.0 Pro', baseCost: 20, maxDur: 15 },
-                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', baseCost: 10, maxDur: 10 },
+                { id: 'seedance-2', name: 'Seedance 2.0 Pro', group: 1, res: { '720p': 0.3034 }, maxDur: 15 },
+                { id: 'seedance-2.0-mini', name: 'Seedance 2.0 Mini', group: 2, res: { '720p': 0.151 }, maxDur: 10 },
                 { id: 'sora-2', name: 'Sora 2', baseCost: 18, maxDur: 15 },
                 { id: 'sora-2-pro-f', name: 'Sora 2 Pro Fast', baseCost: 24, maxDur: 15 },
                 { id: 'runway', name: 'Runway Gen3 Alpha', baseCost: 6, maxDur: 10 },
                 { id: 'topaz', name: 'Topaz Video Upscale', baseCost: 5, maxDur: 10 },
-                { id: 'hailuo-02', name: 'Hailuo 02 (Minimax)', baseCost: 10, maxDur: 10 }
+                { id: 'hailuo-02', name: 'Hailuo 02 (Minimax)', group: 2, res: { '768p': 0.045 }, minDur: 6, maxDur: 10, step: 4, defDur: 6 }
             ],
             audio: [
                 { id: 'suno-v5', name: 'Suno V5 Full Track', baseCost: 3 },
@@ -611,6 +668,77 @@
             ]
         };
 
+        // ===== ЦЕНООБРАЗОВАНИЕ =====
+        // Себестоимость fal.ai: 1 ⚡ = $0.032. Цена модели = цена fal.ai / 0.032 * наценка группы.
+        // Группа 1 — без наценки (витринные модели), 2 — +25%, 3 — +45%.
+        // Модели без поля group/usd/res считаются по старому полю baseCost (цены ещё не сверены с fal.ai).
+        const FAL_TOKEN_USD = 0.032;
+        const GROUP_MARKUP = { 1: 1.0, 2: 1.25, 3: 1.45 };
+        const RES_LABELS = { '1k': '1K Standard', '2k': '2K HD', '4k': '4K Ultra HD' };
+        const VID_RES_LABELS = { '360p': '360p', '480p': '480p SD', '720p': '720p HD', '768p': '768p HD', '1080p': '1080p Full HD', '4k': '4K Ultra HD', 'Pro': 'Pro' };
+        const ASPECTS = [['16:9', 'Горизонтальное (16:9)'], ['9:16', 'Вертикальное (9:16)'], ['1:1', 'Квадрат (1:1)'], ['4:3', 'Портрет (4:3)'], ['3:4', 'Альбом (3:4)']];
+        const LEGACY_VID_QUALITY = [['480p', '480p SD'], ['720p', '720p HD'], ['1080p', '1080p Full HD (+2 ⚡)'], ['2160p', '2160p 4K Ultra HD (+5 ⚡)']];
+        const LEGACY_IMG_RES = [['1k', '1K Standard'], ['2k', '2K HD (+1 ⚡)'], ['4k', '4K Ultra HD (+2 ⚡)']];
+
+        function getModel(cat, id) { return (sortedModels[cat] || []).find(m => m.id === id); }
+        function tokensFromUsd(usd, group) { return usd / FAL_TOKEN_USD * (GROUP_MARKUP[group] || 1); }
+        function ceilTokens(x) { return Math.max(1, Math.ceil(+x.toFixed(6))); }
+        function vidRate(m, resKey, sound) {
+            const r = m.res[resKey];
+            if (typeof r === 'number') return r;
+            return sound ? r.on : r.off;
+        }
+        function hasSoundToggle(m) {
+            return !!(m && m.res && Object.values(m.res).some(r => typeof r === 'object'));
+        }
+        // Цена «от» для выпадающего списка
+        function startCost(cat, m) {
+            if (cat === 'image' && m.tokens) {
+                return Math.min(...Object.values(m.tokens));
+            }
+            if (cat === 'image' && m.usd) {
+                return ceilTokens(Math.min(...Object.values(m.usd).map(u => tokensFromUsd(u, m.group))));
+            }
+            if (cat === 'video' && m.res) {
+                const dur = m.defDur || 5;
+                const rates = Object.keys(m.res).map(k => vidRate(m, k, false));
+                return ceilTokens(tokensFromUsd(Math.min(...rates), m.group) * dur);
+            }
+            return m.baseCost;
+        }
+
+        // Подстраивает поля формы под выбранную модель
+        function setupModelFields() {
+            const m = getModel(activeCategory, document.getElementById('modal-model-select').value);
+            if (activeCategory === 'video') {
+                const q = document.getElementById('vid-quality');
+                const options = (m && m.res)
+                    ? Object.keys(m.res).map(k => [k, VID_RES_LABELS[k] || k])
+                    : LEGACY_VID_QUALITY;
+                q.innerHTML = options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('');
+                q.value = options.some(o => o[0] === '720p') ? '720p' : options[0][0];
+
+                const asp = document.getElementById('vid-aspect');
+                const allowed = (m && m.aspects) ? m.aspects : ASPECTS.map(a => a[0]);
+                asp.innerHTML = ASPECTS.filter(a => allowed.includes(a[0])).map(a => `<option value="${a[0]}">${a[1]}</option>`).join('');
+
+                const dur = document.getElementById('vid-dur');
+                const minD = (m && m.minDur) || 4;
+                const maxD = (m && m.maxDur) || 30;
+                dur.min = minD; dur.max = maxD; dur.step = (m && m.step) || 1;
+                dur.value = Math.min(Math.max((m && m.defDur) || 5, minD), maxD);
+                document.getElementById('dur-val').innerText = dur.value + ' сек';
+
+                document.getElementById('group-sound').style.display = hasSoundToggle(m) ? 'block' : 'none';
+            } else if (activeCategory === 'image') {
+                const r = document.getElementById('img-res');
+                const options = (m && m.usd)
+                    ? Object.keys(m.usd).map(k => [k, RES_LABELS[k] || k])
+                    : LEGACY_IMG_RES;
+                r.innerHTML = options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('');
+            }
+        }
+
         function switchPage(pageId) {
             document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(`page-${pageId}`).classList.add('active-page');
@@ -626,46 +754,252 @@
             renderHistory();
         }
 
+        function saveHistoryList(list) {
+            localStorage.setItem('hydra_history', JSON.stringify(list));
+        }
+
+        function safeUrl(u) {
+            return (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : '';
+        }
+
+        let toastTimer = null;
+        function showToast(text) {
+            const el = document.getElementById('toast');
+            el.textContent = text;
+            el.style.display = 'block';
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { el.style.display = 'none'; }, 1800);
+        }
+
+        // Создаёт элемент медиа. big=true — для окна просмотра, false — для карточки
+        function makeMedia(item, big) {
+            const url = safeUrl(item.url);
+            let el;
+            if (item.category === 'video') {
+                el = document.createElement('video');
+                el.src = url;
+                el.setAttribute('playsinline', '');
+                if (big) { el.controls = true; el.autoplay = true; } else { el.preload = 'metadata'; el.muted = true; }
+            } else if (item.category === 'audio') {
+                if (!big) {
+                    el = document.createElement('div');
+                    el.style.cssText = 'display:flex; align-items:center; justify-content:center; font-size:35px;';
+                    el.textContent = '🎵';
+                } else {
+                    el = document.createElement('div');
+                    const ic = document.createElement('div');
+                    ic.className = 'viewer-audio-icon';
+                    ic.textContent = '🎵';
+                    const au = document.createElement('audio');
+                    au.src = url; au.controls = true;
+                    el.appendChild(ic); el.appendChild(au);
+                    el.style.width = '100%';
+                    return el;
+                }
+            } else {
+                el = document.createElement('img');
+                el.src = url;
+                el.alt = 'Media';
+            }
+            if (!big) el.className = 'history-media';
+            return el;
+        }
+
         function renderHistory() {
             const container = document.getElementById('history-content');
+            container.innerHTML = '';
             const list = getHistoryList();
-            const filtered = currentFilter === 'all' ? list : list.filter(i => i.category === currentFilter);
+            const rows = [];
+            list.forEach((item, idx) => {
+                if (currentFilter === 'all' || item.category === currentFilter) rows.push({ item, idx });
+            });
 
-            if (!filtered || filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-history">
-                        <div class="empty-icon">🔲</div>
-                        <p style="color:var(--text-secondary); font-size:14px;">История пока пуста</p>
-                        <button class="btn-main" style="width:140px; margin:12px auto 0 auto;" onclick="switchPage('home')">Создать</button>
-                    </div>
-                `;
+            if (rows.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-history';
+                const icon = document.createElement('div');
+                icon.className = 'empty-icon';
+                icon.textContent = '🔲';
+                const txt = document.createElement('p');
+                txt.style.cssText = 'color:var(--text-secondary); font-size:14px;';
+                txt.textContent = 'История пока пуста';
+                const btn = document.createElement('button');
+                btn.className = 'btn-main';
+                btn.style.cssText = 'width:140px; margin:12px auto 0 auto;';
+                btn.textContent = 'Создать';
+                btn.addEventListener('click', () => switchPage('home'));
+                empty.appendChild(icon); empty.appendChild(txt); empty.appendChild(btn);
+                container.appendChild(empty);
                 return;
             }
 
-            let html = '<div class="history-grid">';
-            filtered.forEach(item => {
-                let mediaTag = `<img src="${item.url}" class="history-media" alt="Media">`;
-                if (item.category === 'video') {
-                    mediaTag = `<video src="${item.url}" class="history-media" controls preload="metadata"></video>`;
-                } else if (item.category === 'audio') {
-                    mediaTag = `<div class="history-media" style="display:flex; align-items:center; justify-content:center; font-size:35px;">🎵</div>`;
-                }
+            const grid = document.createElement('div');
+            grid.className = 'history-grid';
+            rows.forEach(({ item, idx }) => {
+                const card = document.createElement('div');
+                card.className = 'history-card';
 
-                html += `
-                    <div class="history-card">
-                        ${mediaTag}
-                        <div class="history-info">
-                            <div>
-                                <div class="history-prompt">${item.prompt || 'Без запроса'}</div>
-                                <div class="history-meta">${item.model} • ${item.date}</div>
-                            </div>
-                            <a href="${item.url}" target="_blank" class="history-btn">Открыть / Скачать</a>
-                        </div>
-                    </div>
-                `;
+                const media = makeMedia(item, false);
+                media.addEventListener('click', () => openViewer(idx));
+                card.appendChild(media);
+
+                const info = document.createElement('div');
+                info.className = 'history-info';
+                const top = document.createElement('div');
+                const pr = document.createElement('div');
+                pr.className = 'history-prompt';
+                pr.textContent = item.prompt || 'Без запроса';
+                const meta = document.createElement('div');
+                meta.className = 'history-meta';
+                meta.textContent = `${item.model} • ${item.date}`;
+                top.appendChild(pr); top.appendChild(meta);
+
+                const open = document.createElement('div');
+                open.className = 'history-btn';
+                open.textContent = 'Открыть';
+                open.addEventListener('click', () => openViewer(idx));
+
+                info.appendChild(top); info.appendChild(open);
+                card.appendChild(info);
+                grid.appendChild(card);
             });
-            html += '</div>';
-            container.innerHTML = html;
+            container.appendChild(grid);
+        }
+
+        // ===== ПРОСМОТР РЕЗУЛЬТАТА =====
+        let viewerIdx = -1;
+
+        function currentViewerItem() {
+            const list = getHistoryList();
+            return list[viewerIdx] || null;
+        }
+
+        function openViewer(idx) {
+            const list = getHistoryList();
+            const item = list[idx];
+            if (!item) return;
+            viewerIdx = idx;
+
+            const stage = document.getElementById('viewer-stage');
+            stage.innerHTML = '';
+            stage.classList.remove('zoomed');
+            const media = makeMedia(item, true);
+            if (item.category !== 'video' && item.category !== 'audio') {
+                media.addEventListener('click', () => stage.classList.toggle('zoomed'));
+            }
+            stage.appendChild(media);
+
+            document.getElementById('viewer-prompt').textContent = item.prompt || 'Без запроса';
+            document.getElementById('viewer-meta').textContent = `${item.model} • ${item.date}`;
+            document.getElementById('viewer-modal').style.display = 'block';
+        }
+
+        function closeViewer() {
+            const stage = document.getElementById('viewer-stage');
+            stage.innerHTML = '';   // останавливает видео/аудио
+            document.getElementById('viewer-modal').style.display = 'none';
+            viewerIdx = -1;
+        }
+
+        function fileNameFor(item) {
+            const defaults = { image: 'jpg', video: 'mp4', audio: 'mp3', avatar: 'mp4' };
+            let ext = defaults[item.category] || 'bin';
+            try {
+                const m = new URL(item.url).pathname.match(/\.([a-zA-Z0-9]{2,5})$/);
+                if (m) ext = m[1].toLowerCase();
+            } catch (e) {}
+            return `hydra-${item.category}-${Date.now()}.${ext}`;
+        }
+
+        async function viewerDownload() {
+            const item = currentViewerItem();
+            const url = item && safeUrl(item.url);
+            if (!url) { showToast('Файл недоступен'); return; }
+            const name = fileNameFor(item);
+
+            // 1) Встроенное скачивание Telegram (новые версии)
+            try {
+                if (typeof tg.downloadFile === 'function' && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0')) {
+                    tg.downloadFile({ url, file_name: name });
+                    return;
+                }
+            } catch (e) {}
+
+            // 2) Скачивание через браузер
+            try {
+                const r = await fetch(url);
+                if (!r.ok) throw new Error('bad status');
+                const blob = await r.blob();
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+                showToast('Скачивание началось');
+                return;
+            } catch (e) {}
+
+            // 3) Запасной вариант — открыть файл во внешнем браузере
+            tg.openLink(url);
+        }
+
+        function copyText(text, okMsg) {
+            const done = () => showToast(okMsg);
+            const fallback = () => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed; opacity:0;';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); done(); } catch (e) { showToast('Не удалось скопировать'); }
+                ta.remove();
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, fallback);
+            } else {
+                fallback();
+            }
+        }
+
+        function viewerCopyLink() {
+            const item = currentViewerItem();
+            const url = item && safeUrl(item.url);
+            if (!url) { showToast('Ссылка недоступна'); return; }
+            copyText(url, 'Ссылка скопирована');
+        }
+
+        function viewerCopyPrompt() {
+            const item = currentViewerItem();
+            if (!item || !item.prompt) { showToast('Промпта нет'); return; }
+            copyText(item.prompt, 'Промпт скопирован');
+        }
+
+        function viewerShare() {
+            const item = currentViewerItem();
+            const url = item && safeUrl(item.url);
+            if (!url) { showToast('Ссылка недоступна'); return; }
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Сделано в Hydra AI Studio')}`;
+            if (typeof tg.openTelegramLink === 'function') tg.openTelegramLink(shareUrl);
+            else window.open(shareUrl, '_blank');
+        }
+
+        function viewerDelete() {
+            if (viewerIdx < 0) return;
+            const doDelete = () => {
+                const list = getHistoryList();
+                list.splice(viewerIdx, 1);
+                saveHistoryList(list);
+                closeViewer();
+                renderHistory();
+                showToast('Удалено из истории');
+            };
+            if (typeof tg.showConfirm === 'function') {
+                tg.showConfirm('Удалить из истории?', ok => { if (ok) doDelete(); });
+            } else if (confirm('Удалить из истории?')) {
+                doDelete();
+            }
         }
 
         function openModal(cat) {
@@ -688,9 +1022,10 @@
             list.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.dataset.baseCost = m.baseCost;
+                const sc = startCost(cat, m);
+                opt.dataset.baseCost = m.baseCost || sc;
                 if (m.maxDur) opt.dataset.maxDur = m.maxDur;
-                opt.innerText = `${m.name} — ${m.baseCost} ⚡`;
+                opt.innerText = (m.group ? `${m.name} — от ${sc} ⚡` : `${m.name} — ${m.baseCost} ⚡`);
                 select.appendChild(opt);
             });
 
@@ -707,28 +1042,39 @@
             recalculateCost();
         }
 
-        function onModelSelectChange() { recalculateCost(); }
+        function onModelSelectChange() { setupModelFields(); recalculateCost(); }
 
         // ДИНАМИЧЕСКИЙ РАСЧЕТ СТОИМОСТИ (ВИДЕО, ФОТО, КАЧЕСТВО)
         function recalculateCost() {
             const select = document.getElementById('modal-model-select');
             if (!select.options.length) return;
             const selectedOpt = select.options[select.selectedIndex];
+            const m = getModel(activeCategory, select.value);
             let baseCost = parseFloat(selectedOpt.dataset.baseCost) || 5;
             let finalCost = baseCost;
 
             if (activeCategory === 'video') {
                 const duration = parseInt(document.getElementById('vid-dur').value, 10) || 5;
-                let costPerSec = baseCost / 5;
-                finalCost = Math.round(costPerSec * duration);
-
                 const quality = document.getElementById('vid-quality').value;
-                if (quality === '1080p') finalCost += 2;
-                if (quality === '2160p') finalCost += 5;
+                if (m && m.res && m.res[quality] !== undefined) {
+                    const sound = document.getElementById('vid-audio').checked;
+                    finalCost = ceilTokens(tokensFromUsd(vidRate(m, quality, sound), m.group) * duration);
+                } else {
+                    let costPerSec = baseCost / 5;
+                    finalCost = Math.round(costPerSec * duration);
+                    if (quality === '1080p') finalCost += 2;
+                    if (quality === '2160p') finalCost += 5;
+                }
             } else if (activeCategory === 'image') {
                 const res = document.getElementById('img-res').value;
-                if (res === '2k') finalCost += 1;
-                if (res === '4k') finalCost += 2;
+                if (m && m.tokens && m.tokens[res] !== undefined) {
+                    finalCost = m.tokens[res];
+                } else if (m && m.usd && m.usd[res] !== undefined) {
+                    finalCost = ceilTokens(tokensFromUsd(m.usd[res], m.group));
+                } else {
+                    if (res === '2k') finalCost += 1;
+                    if (res === '4k') finalCost += 2;
+                }
             }
 
             document.getElementById('token-cost-hint').innerText = `Сгенерировать — ${finalCost} ⚡`;
@@ -790,10 +1136,12 @@
 
             if (activeCategory === 'image') {
                 bodyData.aspect_ratio = document.getElementById('img-aspect').value;
+                bodyData.resolution = document.getElementById('img-res').value;
             } else if (activeCategory === 'video') {
                 bodyData.aspect_ratio = document.getElementById('vid-aspect').value;
                 bodyData.duration = document.getElementById('vid-dur').value;
                 bodyData.quality = document.getElementById('vid-quality').value;
+                bodyData.generate_audio = document.getElementById('vid-audio').checked;
             }
 
             try {
