@@ -1,4 +1,6 @@
-import { getModel, validateInput, calcCost, buildRequest } from '../lib/models.js';
+import crypto from 'crypto';
+import { getModel, validateInput, calcCost, buildRoutes } from '../lib/models.js';
+import { submit, friendlyError, checkMoneyError } from '../lib/providers.js';
 import { makeToken } from '../lib/jobtoken.js';
 import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
@@ -81,32 +83,49 @@ export default async function handler(req, res) {
   }
   const refund = () => query('UPDATE users SET coins = coins + $1 WHERE id = $2', [cost, user.id]).catch(() => {});
 
-  // 4. Отправляем задачу в очередь fal.ai (видео делается минуты, ждать ответа в одном запросе нельзя)
-  const { endpoint, payload } = buildRequest(model, v);
+  // 4. Отправляем задачу: сначала более дешёвый провайдер, при ошибке — следующий, последним fal.ai
+  let routes;
   try {
-    const response = await fetch(`https://queue.fal.run/${endpoint}`, {
-      method: 'POST',
-      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok || !data.request_id || !data.status_url || !data.response_url) {
+    routes = buildRoutes(model, v);
+  } catch (e) {
+    await refund();
+    return res.status(400).json({ error: e.message || 'Неверные параметры' });
+  }
+  if (!routes.length) {
+    await refund();
+    return res.status(503).json({ error: 'Эта модель сейчас недоступна, ⚡ возвращены' });
+  }
+  try {
+    let used = -1, sub = null, lastErr = '';
+    for (let i = 0; i < routes.length; i++) {
+      try {
+        sub = await submit(routes[i]);
+      } catch (e) {
+        sub = { ok: false, error: e.message };
+      }
+      if (sub.ok) { used = i; break; }
+      lastErr = sub.error;
+      console.error('submit failed', routes[i].provider, model.id, sub.error);
+      await checkMoneyError(routes[i].provider, sub.error);
+    }
+    if (used < 0) {
       await refund();
-      const detail = data.detail
-        ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
-        : (data.message || `Ошибка fal.ai (${response.status})`);
-      return res.status(502).json({ error: detail });
+      return res.status(502).json({ error: friendlyError(lastErr) });
     }
 
+    const jobId = 'h' + crypto.randomBytes(12).toString('base64url');
+    const hasMore = used < routes.length - 1;
     try {
-      await query('INSERT INTO jobs (id, user_id, model, cost) VALUES ($1,$2,$3,$4)', [data.request_id, user.id, model.id, cost]);
+      await query(
+        `INSERT INTO jobs (id, user_id, model, cost, provider, ext, route, input) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [jobId, user.id, model.id, cost, routes[used].provider, JSON.stringify(sub.ref), used, hasMore ? JSON.stringify(v) : null]
+      );
     } catch (e) {
       await refund();
       return res.status(500).json({ error: 'Ошибка сервера, ⚡ возвращены' });
     }
 
-    const job = makeToken({ m: model.id, s: data.status_url, r: data.response_url, i: data.request_id, u: String(user.id) });
+    const job = makeToken({ m: model.id, j: jobId, u: String(user.id) });
     return res.status(200).json({
       success: true,
       job,

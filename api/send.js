@@ -7,7 +7,7 @@ import { tgCall, sendMessage } from '../lib/bot.js';
 export const config = { maxDuration: 40 };
 
 // Результат хранится на fal.media. Отправляем только такие ссылки.
-const FAL_URL = /^https:\/\/(?:[a-z0-9-]+\.)*fal\.media\/[\w./%~+-]+$/i;
+import { RESULT_URL as FAL_URL } from '../lib/providers.js';
 const MAX_UPLOAD = 45 * 1024 * 1024;   // лимит Telegram на загрузку ботом — 50 МБ
 const SEND_LIMIT = 40;                 // отправок в чат в сутки на человека
 
