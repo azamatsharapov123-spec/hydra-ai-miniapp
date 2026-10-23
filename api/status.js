@@ -119,7 +119,7 @@ export default async function handler(req, res) {
     const st = await poll(row.provider, row.ext || {}, extract);
 
     if (st.state === 'done') {
-      const url = await keepFile(st.url, row.provider, model.output);
+      const url = await keepFile(st.url, row.provider, model.output, req.headers['x-vercel-oidc-token']);
       await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL WHERE id=$1 AND user_id=$2 AND status='pending'`, [row.id, user.id, url]);
       return res.status(200).json({ status: 'COMPLETED', url });
     }
