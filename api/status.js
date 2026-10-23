@@ -3,6 +3,7 @@ import { readToken } from '../lib/jobtoken.js';
 import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
 import { submit, poll, keepFile, friendlyError, checkMoneyError } from '../lib/providers.js';
+import { giveBack } from '../lib/limits.js';
 
 // Копирование готового видео в своё хранилище может занять несколько секунд
 export const config = { maxDuration: 60 };
@@ -21,10 +22,11 @@ function okUrl(u) {
 // Возврат ⚡ за неудавшуюся задачу. Срабатывает один раз, повтор ничего не меняет.
 async function refundJob(jobId, userId) {
   const j = await query(
-    `UPDATE jobs SET status='refunded', input=NULL WHERE id=$1 AND user_id=$2 AND status='pending' RETURNING cost`,
+    `UPDATE jobs SET status='refunded', input=NULL WHERE id=$1 AND user_id=$2 AND status='pending' RETURNING cost, unl`,
     [jobId, userId]
   );
   if (j.rows[0]) {
+    if (j.rows[0].unl) await giveBack(userId, j.rows[0].unl);
     const u = await query('UPDATE users SET coins=coins+$1 WHERE id=$2 RETURNING coins', [j.rows[0].cost, userId]);
     return u.rows[0].coins;
   }
@@ -45,7 +47,18 @@ async function tryNext(row, model, userId) {
   if (!claim.rows[0]) return true;   // переключение уже делает другой запрос
   let routes = [];
   try { routes = buildRoutes(model, row.input); } catch (e) { routes = []; }
+  // безлимит работает только через Kie и бесплатно
+  if (row.unl) routes = routes.filter(r => r.provider === 'kie').map(r => ({ ...r, cost: 0 }));
+  let charged = Number(row.cost) || 0;
   for (let i = row.route + 1; i < routes.length; i++) {
+    // следующий провайдер дороже — списываем разницу; не хватает ⚡ — этот провайдер пропускаем
+    const extra = routes[i].cost - charged;
+    if (extra > 0) {
+      const more = await query('UPDATE users SET coins=coins-$1 WHERE id=$2 AND coins>=$1 RETURNING coins', [extra, userId]);
+      if (!more.rows[0]) { console.error('fallback skipped: not enough coins', model.id, routes[i].provider); continue; }
+      charged += extra;
+      await query('UPDATE jobs SET cost=$2 WHERE id=$1', [row.id, charged]);
+    }
     let sub;
     try { sub = await submit(routes[i]); } catch (e) { sub = { ok: false, error: e.message }; }
     if (sub.ok) {
@@ -60,6 +73,8 @@ async function tryNext(row, model, userId) {
     console.error('fallback submit failed', routes[i].provider, model.id, sub.error);
     await checkMoneyError(routes[i].provider, sub.error);
   }
+  // не получилось: провайдер в задаче — снова исходный, refundJob вернёт всё списанное
+  await query(`UPDATE jobs SET provider=$2 WHERE id=$1 AND provider='switching'`, [row.id, row.provider]);
   return false;
 }
 
@@ -120,7 +135,7 @@ export default async function handler(req, res) {
 
     if (st.state === 'done') {
       const url = await keepFile(st.url, row.provider, model.output, req.headers['x-vercel-oidc-token']);
-      await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL WHERE id=$1 AND user_id=$2 AND status='pending'`, [row.id, user.id, url]);
+      await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL, provider_credits=$4 WHERE id=$1 AND user_id=$2 AND status='pending'`, [row.id, user.id, url, st.credits || null]);
       return res.status(200).json({ status: 'COMPLETED', url });
     }
 

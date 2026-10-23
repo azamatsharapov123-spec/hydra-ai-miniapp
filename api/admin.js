@@ -25,7 +25,7 @@ export default async function handler(req, res) {
           webhookinfo: 'состояние вебхука',
           stats: 'сводка',
           user: 'user=ID — данные пользователя',
-          topup: 'user=ID&package=trial|start|standard|pro|max — зачислить как оплаченный платёж (с реферальными бонусами)',
+          topup: 'user=ID&package=trial|start|standard|pro|max|ultra|unlimited — зачислить как оплаченный платёж (с реферальными бонусами)',
           gift: 'user=ID&coins=N — просто добавить ⚡ без бонусов',
           withdrawals: 'список заявок на вывод',
           withdrawal_done: 'id=N — отметить выплаченной',

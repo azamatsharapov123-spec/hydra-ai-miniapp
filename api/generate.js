@@ -1,12 +1,12 @@
 import crypto from 'crypto';
-import { getModel, validateInput, calcCost, buildRoutes } from '../lib/models.js';
+import { getModel, validateInput, buildRoutes, unlimitedFor } from '../lib/models.js';
 import { submit, friendlyError, checkMoneyError } from '../lib/providers.js';
 import { makeToken } from '../lib/jobtoken.js';
 import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
 import { askLLM } from '../lib/llm.js';
 import { takeQuota, giveBack } from '../lib/limits.js';
-import { CHAT_DAILY_LIMIT } from '../lib/config.js';
+import { CHAT_DAILY_LIMIT, UNLIMITED } from '../lib/config.js';
 
 // ИИ-чат может отвечать несколько секунд
 export const config = { maxDuration: 30 };
@@ -64,40 +64,71 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Эта модель недоступна' });
   }
 
-  // 2. Проверяем значения формы и считаем цену НА СЕРВЕРЕ (цену из браузера не используем)
-  let v, cost;
+  // 2. Проверяем значения формы и строим маршрут по провайдерам (цены считаются НА СЕРВЕРЕ)
+  let v, routes;
   try {
     v = validateInput(model, { ...(values || {}), audio_seconds: body.audio_seconds });
-    cost = calcCost(model.price, v);
-  } catch (e) {
-    return res.status(400).json({ error: e.message || 'Неверные параметры' });
-  }
-  if (!Number.isFinite(cost) || cost < 1) {
-    return res.status(400).json({ error: 'Не удалось рассчитать стоимость' });
-  }
-
-  // 3. Списываем ⚡ одной атомарной операцией (двойная трата невозможна)
-  const paid = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [cost, user.id]);
-  if (!paid.rows[0]) {
-    return res.status(400).json({ error: `Недостаточно токенов: нужно ${cost} ⚡` });
-  }
-  const refund = () => query('UPDATE users SET coins = coins + $1 WHERE id = $2', [cost, user.id]).catch(() => {});
-
-  // 4. Отправляем задачу: сначала более дешёвый провайдер, при ошибке — следующий, последним fal.ai
-  let routes;
-  try {
     routes = buildRoutes(model, v);
   } catch (e) {
-    await refund();
     return res.status(400).json({ error: e.message || 'Неверные параметры' });
   }
   if (!routes.length) {
-    await refund();
-    return res.status(503).json({ error: 'Эта модель сейчас недоступна, ⚡ возвращены' });
+    return res.status(503).json({ error: 'Эта модель сейчас недоступна с такими настройками. Попробуйте другое качество или модель.' });
   }
+
+  // 3. Безлимит: генерация без списания ⚡ через самого дешёвого провайдера, в пределах дневного лимита
+  let unl = null;
+  const tier = user.unlim_until && new Date(user.unlim_until) > new Date() ? Number(user.unlim_tier) || 0 : 0;
+  if (unlimitedFor(model, v, tier) && UNLIMITED[tier]) {
+    const kieRoutes = routes.filter(r => r.provider === 'kie');
+    const cap = UNLIMITED[tier].caps[model.category];
+    if (kieRoutes.length && cap) {
+      const q = await takeQuota(user.id, 'unl_' + model.category, cap);
+      if (q.ok) {
+        unl = 'unl_' + model.category;
+        routes = kieRoutes.map(r => ({ ...r, cost: 0 }));
+      } else if (!body.pay_over_limit) {
+        return res.status(429).json({
+          error: `Дневной лимит безлимита исчерпан (${cap} ${model.category === 'video' ? 'видео' : 'картинок'} в сутки, обновится в полночь). Можно сгенерировать за ${routes[0].cost} ⚡.`,
+          unlimited_exhausted: true, cost: routes[0].cost
+        });
+      }
+    }
+  }
+
+  // 4. Списываем цену самого дешёвого провайдера одной атомарной операцией (двойная трата невозможна)
+  let charged = routes[0].cost;
+  let balance;
+  if (charged > 0) {
+    const paid = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [charged, user.id]);
+    if (!paid.rows[0]) {
+      if (unl) await giveBack(user.id, unl);
+      return res.status(400).json({ error: `Недостаточно токенов: нужно ${charged} ⚡` });
+    }
+    balance = paid.rows[0].coins;
+  } else {
+    balance = (await query('SELECT coins FROM users WHERE id=$1', [user.id])).rows[0].coins;
+  }
+  const refund = async () => {
+    if (charged > 0) await query('UPDATE users SET coins = coins + $1 WHERE id = $2', [charged, user.id]).catch(() => {});
+    if (unl) await giveBack(user.id, unl);
+  };
+
+  // 5. Отправляем задачу: сначала дешёвый провайдер, при ошибке — следующий.
+  // Если следующий дороже, списываем разницу (клиент платит по цене того, кто реально делает генерацию).
   try {
     let used = -1, sub = null, lastErr = '';
     for (let i = 0; i < routes.length; i++) {
+      const extra = routes[i].cost - charged;
+      if (extra > 0) {
+        const more = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [extra, user.id]);
+        if (!more.rows[0]) {
+          lastErr = `Основной сервер не принял задачу, а на резервном нужно ещё ${extra} ⚡. Пополните баланс или попробуйте позже.`;
+          continue;
+        }
+        charged += extra;
+        balance = more.rows[0].coins;
+      }
       try {
         sub = await submit(routes[i]);
       } catch (e) {
@@ -115,10 +146,14 @@ export default async function handler(req, res) {
 
     const jobId = 'h' + crypto.randomBytes(12).toString('base64url');
     const hasMore = used < routes.length - 1;
+    // настройки без файлов: пригодятся, если клиент отправит результат в тренды
+    const params = {};
+    for (const [k, x] of Object.entries(v)) if (typeof x !== 'string' || !/^(data:|https?:)/.test(x)) params[k] = x;
+    params.chars = ['char1', 'char2', 'char3', 'char4', 'image1', 'image2', 'image3', 'image4'].filter(k => v[k]).length;
     try {
       await query(
-        `INSERT INTO jobs (id, user_id, model, cost, provider, ext, route, input) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [jobId, user.id, model.id, cost, routes[used].provider, JSON.stringify(sub.ref), used, hasMore ? JSON.stringify(v) : null]
+        `INSERT INTO jobs (id, user_id, model, cost, provider, ext, route, input, unl, params) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [jobId, user.id, model.id, charged, routes[used].provider, JSON.stringify(sub.ref), used, hasMore ? JSON.stringify(v) : null, unl, JSON.stringify(params)]
       );
     } catch (e) {
       await refund();
@@ -129,8 +164,9 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       job,
-      cost,
-      new_balance: paid.rows[0].coins
+      cost: charged,
+      unlimited: !!unl,
+      new_balance: balance
     });
   } catch (error) {
     await refund();

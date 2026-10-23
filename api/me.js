@@ -1,11 +1,27 @@
 import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
-import { WITHDRAW_MIN, refLink, refTier, nextTier, REF_TIERS } from '../lib/config.js';
+import { WITHDRAW_MIN, refLink, refTier, nextTier, REF_TIERS, UNLIMITED } from '../lib/config.js';
+import { communityData, submitTrend, joinContest } from '../lib/community.js';
+import { quotaLeft } from '../lib/limits.js';
 
+// GET  /api/me                   — профиль, баланс, партнёрка, безлимит
+// GET  /api/me?section=community — тренды пользователей, конкурсы, мои заявки
+// POST /api/me {action:'trend_submit' | 'contest_join', ...}
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
     const { user, isNew } = await authUser(req);
+    res.setHeader('Cache-Control', 'no-store');
+
+    if (req.method === 'POST') {
+      const b = req.body || {};
+      if (b.action === 'trend_submit') return res.status(200).json({ ok: true, ...(await submitTrend(user, b)) });
+      if (b.action === 'contest_join') return res.status(200).json(await joinContest(user, b));
+      return res.status(400).json({ error: 'Неизвестное действие' });
+    }
+    if (req.query && req.query.section === 'community') {
+      return res.status(200).json(await communityData(user));
+    }
 
     // Задачи, которые зависли больше 70 минут (результат уже не получить), возвращают ⚡
     const fix = await query(
@@ -39,9 +55,20 @@ export default async function handler(req, res) {
     const pays = await query(
       `SELECT id, COALESCE(pay_amount, tjs) AS tjs, coins, status FROM payments
        WHERE user_id=$1 AND created_at > now() - interval '30 days' ORDER BY id DESC LIMIT 5`, [user.id]);
-    res.setHeader('Cache-Control', 'no-store');
+    const until = user.unlim_until ? new Date(user.unlim_until) : null;
+    const ut = until && until > new Date() ? Number(user.unlim_tier) || 0 : 0;
+    let unlimited = null;
+    if (ut && UNLIMITED[ut]) {
+      const caps = UNLIMITED[ut].caps;
+      unlimited = {
+        tier: ut, name: UNLIMITED[ut].name, until: until.toISOString(),
+        left: { image: await quotaLeft(user.id, 'unl_image', caps.image), video: await quotaLeft(user.id, 'unl_video', caps.video) },
+        caps
+      };
+    }
     return res.status(200).json({
       id: String(user.id),
+      unlimited,
       coins,
       is_new: isNew,
       ref_code: user.ref_code,

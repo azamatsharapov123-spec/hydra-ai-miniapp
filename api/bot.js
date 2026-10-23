@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { upsertUser } from '../lib/auth.js';
 import { sendMessage, openAppKeyboard, webhookSecret, tgCall, isAdmin } from '../lib/bot.js';
 import { adminCommand, paymentDecision } from '../lib/adminops.js';
+import { trendDecision } from '../lib/community.js';
 import { handleSupportMessage, forwardAttachment, adminReply } from '../lib/support.js';
 
 // ИИ может думать несколько секунд
@@ -29,6 +30,16 @@ export default async function handler(req, res) {
         await tgCall('answerCallbackQuery', { callback_query_id: cq.id, text: 'Недостаточно прав', show_alert: true });
         return res.status(200).send('ok');
       }
+      const t = /^tr:(ok|no|cat|set|back):(\d{1,12})(?::(\d{1,2}))?$/.exec(String(cq.data || ''));
+      if (t) {
+        const out = await trendDecision(t[1], t[2], t[3]);
+        await tgCall('answerCallbackQuery', { callback_query_id: cq.id, text: out.text, show_alert: !!out.done });
+        if (cq.message && (out.keyboard || out.done)) {
+          await tgCall('editMessageReplyMarkup', { chat_id: cq.message.chat.id, message_id: cq.message.message_id, reply_markup: out.keyboard || { inline_keyboard: [] } });
+        }
+        if (out.done && cq.message) await sendMessage(cq.message.chat.id, out.text);
+        return res.status(200).send('ok');
+      }
       const m = /^pay:(ok|no):(\d{1,12})$/.exec(String(cq.data || ''));
       if (m) {
         const out = await paymentDecision(m[1], m[2]);
@@ -48,7 +59,7 @@ export default async function handler(req, res) {
       const text = String(msg.text || '');
 
       // --- команды администратора ---
-      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|help|admin|ai)\b/i.test(text)) {
+      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|help|admin|ai|refs|setref|unlim|trends|untrend|revenue|contest_new|contests|contest|contest_win|contest_end)\b/i.test(text)) {
         const reply = await adminCommand(text);
         await sendMessage(msg.chat.id, reply);
         return res.status(200).send('ok');

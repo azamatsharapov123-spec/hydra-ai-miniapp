@@ -5,8 +5,26 @@
 ## О проекте
 
 **Hydra AI Studio Pro** — Telegram Mini App для генерации контента нейросетями
-(изображения, видео, аудио, аватары, чат). Деплоится на **Vercel**; все запросы
-к моделям идут через [fal.ai](https://fal.ai).
+(изображения, видео, аудио, аватары, чат). Деплоится на **Vercel**. Генерации идут через несколько провайдеров
+по цене: Kie.ai (самый дешёвый, `KIE_API_KEY`), Replicate, Atlas Cloud и fal.ai (запасной).
+
+## Маршрут генерации и цены (lib/models.js)
+
+- У модели `price` — цена через fal, у каждого шага `alt` своя `price` и условия `when`
+  (декларативные: `in`, `max`, `not`, `noImage`, `noChars`, `noRefs`, `noEnd`, `needsMedia`;
+  одинаково понимают сервер `matchWhen` и приложение `clientMatch`).
+- `buildRoutes` сортирует провайдеров по цене. Списывается цена самого дешёвого; если задачу пришлось
+  отдать более дорогому, разница списывается дополнительно (api/generate.js и tryNext в api/status.js).
+- `only: 'kie'` — модель есть только у Kie. Без ключа она скрыта.
+- Безлимит: поле `unlim: { tier, when }`, лимиты в `UNLIMITED` (lib/config.js), пакеты `ultra`/`unlimited`.
+  Безлимит работает только через Kie.
+
+## Сообщество (lib/community.js)
+
+- Заявки в тренды: POST /api/me {action:'trend_submit'}, модерация кнопками в боте (`tr:*`).
+- Конкурсы: команды администратора /contest_new, /contests, /contest, /contest_win, /contest_end, /revenue.
+- Данные для приложения: GET /api/me?section=community. Рубрики — `TREND_CATEGORIES` в lib/config.js.
+- Лимит Vercel Hobby — 12 функций в api/. Сейчас их ровно 12: новые действия добавляйте в существующие файлы.
 
 ## Структура
 
@@ -26,6 +44,8 @@ README.md
 - Деплой: push в репозиторий → автодеплой Vercel.
 - Переменные окружения (Vercel → Settings → Environment Variables):
   - `FAL_KEY` — ключ fal.ai. **Никогда** не коммитить и не выводить в клиентский код.
+  - `KIE_API_KEY` — ключ Kie.ai (дешёвый провайдер; без него всё работает через остальных).
+  - `ATLAS_API_KEY`, `REPLICATE_API_TOKEN` — необязательные дешёвые провайдеры.
 - Тестов и линтера нет. Перед коммитом проверяйте синтаксис:
   `node --check api/generate.js`.
 
