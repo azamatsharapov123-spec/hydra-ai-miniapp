@@ -243,6 +243,7 @@
             border-radius: 12px; padding: 12px; text-align: center;
             cursor: pointer; margin-top: 6px;
         }
+        .upload-pick { border-style: solid; color: var(--text-secondary); font-size: 13px; padding: 9px; }
         .file-hidden { display: none; }
 
         .btn-main {
@@ -1422,6 +1423,22 @@
                         recalculateCost();
                     });
                     wrap.appendChild(up);
+                    if (f.pick && f.accept === 'image') {
+                        const pick = document.createElement('div');
+                        pick.className = 'upload-box upload-pick';
+                        pick.textContent = '👤 Выбрать из карточек персонажей';
+                        pick.addEventListener('click', () => openCharModal('pick', id => {
+                            const c = getChars().find(x => x.id === id);
+                            if (!c) return;
+                            input.value = '';
+                            delete fileSecs[f.key];
+                            fileData[f.key] = c.img;
+                            status.textContent = '✅ Карточка «' + c.name + '»';
+                            clear.style.display = 'inline-block';
+                            recalculateCost();
+                        }));
+                        wrap.appendChild(pick);
+                    }
                     if (f.hint) {
                         const hint = document.createElement('div');
                         hint.className = 'file-hint';
@@ -1455,12 +1472,16 @@
             return v;
         }
 
-        // Поля «Фото-референс 2…4» появляются по очереди, когда заполнено предыдущее
+        // Поля, у которых есть «after» (конечный кадр, персонаж 2…, фото-референс 2…), появляются,
+        // когда заполнено предыдущее поле
         function updateRefVisibility() {
-            for (let i = 1; i < REF_KEYS.length; i++) {
-                const w = document.querySelector('#dyn-fields .dyn-field[data-key="' + REF_KEYS[i] + '"]');
-                if (w) w.style.display = (fileData[REF_KEYS[i]] || fileData[REF_KEYS[i - 1]]) ? '' : 'none';
-            }
+            const m = currentModel();
+            if (!m) return;
+            m.fields.forEach(f => {
+                if (!f.after) return;
+                const w = document.querySelector('#dyn-fields .dyn-field[data-key="' + f.key + '"]');
+                if (w) w.style.display = (fileData[f.key] || fileData[f.after]) ? '' : 'none';
+            });
         }
 
         function recalculateCost() {
@@ -1811,7 +1832,7 @@
         function trendSlots(t) {
             return (Array.isArray(t.slots) ? t.slots : []).slice(0, 4).map((s, i) => ({
                 label: String((s && s.label) || ('Персонаж ' + (i + 1))).slice(0, 30),
-                key: String((s && s.key) || ('image' + (i + 1)))
+                key: String((s && s.key) || ('char' + (i + 1)))
             }));
         }
 
