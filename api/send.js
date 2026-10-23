@@ -2,6 +2,7 @@ import { authUser, sendError } from '../lib/auth.js';
 import { HttpError } from '../lib/db.js';
 import { takeQuota } from '../lib/limits.js';
 import { tgCall, sendMessage } from '../lib/bot.js';
+import { query } from '../lib/db.js';
 
 // Скачивание файла и отправка в Telegram может занять несколько секунд
 export const config = { maxDuration: 40 };
@@ -20,7 +21,7 @@ const METHODS = {
 
 // Просит Telegram самому скачать файл по ссылке (так быстрее всего); если не вышло, скачиваем и загружаем сами
 async function deliver(chatId, method, field, url, caption, extra) {
-  const r = await tgCall(method, { chat_id: chatId, [field]: url, caption, ...extra });
+  const r = url.startsWith('data:') ? null : await tgCall(method, { chat_id: chatId, [field]: url, caption, ...extra });
   if (r && r.ok) return { ok: true };
   if (r && (r.error_code === 403 || r.error_code === 400 && /chat not found|blocked|deactivated/i.test(r.description || ''))) {
     return { ok: false, noChat: true };
@@ -35,7 +36,8 @@ async function deliver(chatId, method, field, url, caption, extra) {
     const buf = Buffer.from(await f.arrayBuffer());
     if (buf.length > MAX_UPLOAD) return { ok: false, tooBig: true };
     const mime = f.headers.get('content-type') || 'application/octet-stream';
-    const name = (new URL(url).pathname.split('/').pop() || 'file').slice(-60);
+    const ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'video/mp4': 'mp4', 'audio/mpeg': 'mp3' }[mime.split(';')[0]] || 'bin';
+    const name = url.startsWith('data:') ? `hydra.${ext}` : (new URL(url).pathname.split('/').pop() || 'file').slice(-60);
     const form = new FormData();
     form.append('chat_id', String(chatId));
     if (caption) form.append('caption', caption);
@@ -55,7 +57,14 @@ export default async function handler(req, res) {
   try {
     const { user } = await authUser(req);
     const { url, category, as_file } = req.body || {};
-    if (typeof url !== 'string' || !FAL_URL.test(url)) throw new HttpError(400, 'Неверная ссылка на файл');
+    if (typeof url !== 'string' || url.length > 12 * 1024 * 1024) throw new HttpError(400, 'Неверная ссылка на файл');
+    // ссылка с наших хранилищ — или результат именно этого пользователя (у других платформ адреса бывают любыми)
+    if (!FAL_URL.test(url)) {
+      const own = /^(https:\/\/|data:)/.test(url)
+        ? await query(`SELECT 1 FROM jobs WHERE user_id=$1 AND result_url=$2 LIMIT 1`, [user.id, url])
+        : { rows: [] };
+      if (!own.rows[0]) throw new HttpError(400, 'Неверная ссылка на файл');
+    }
     if (!METHODS[category]) throw new HttpError(400, 'Неизвестный тип файла');
     const q = await takeQuota(user.id, 'send', SEND_LIMIT);
     if (!q.ok) throw new HttpError(429, 'Слишком много отправок за сегодня. Попробуйте завтра.');
