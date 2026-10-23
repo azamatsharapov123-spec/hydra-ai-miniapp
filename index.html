@@ -756,7 +756,13 @@
         }
 
         // Расчёт цены — та же формула, что на сервере (сервер всё равно считает сам)
+        const REF_KEYS = ['ref1', 'ref2', 'ref3', 'ref4'];
         function clientCalc(p, v) {
+            const base = clientBase(p, v);
+            if (base === undefined || !p.perRef) return base;
+            return base + p.perRef * REF_KEYS.filter(k => v && v[k]).length;
+        }
+        function clientBase(p, v) {
             const ceil = x => Math.max(1, Math.ceil(+x.toFixed(6)));
             switch (p.kind) {
                 case 'image': return p.table[v.res];
@@ -1449,10 +1455,19 @@
             return v;
         }
 
+        // Поля «Фото-референс 2…4» появляются по очереди, когда заполнено предыдущее
+        function updateRefVisibility() {
+            for (let i = 1; i < REF_KEYS.length; i++) {
+                const w = document.querySelector('#dyn-fields .dyn-field[data-key="' + REF_KEYS[i] + '"]');
+                if (w) w.style.display = (fileData[REF_KEYS[i]] || fileData[REF_KEYS[i - 1]]) ? '' : 'none';
+            }
+        }
+
         function recalculateCost() {
             const m = currentModel();
             const hint = document.getElementById('token-cost-hint');
             if (!m) return;
+            updateRefVisibility();
             const v = collectValues(m);
             const cost = clientCalc(m.price, v);
             window.currentCalculatedCost = cost;
@@ -1934,7 +1949,7 @@
 
         // mode: 'create' — только создание, 'pick' — выбор из списка (onPick получает id карточки)
         function openCharModal(mode, onPick) {
-            charCtx = { onPick: onPick || null, draft: { img: null, name: '' }, busy: false };
+            charCtx = { onPick: onPick || null, draft: { img: null, src: null, name: '' }, busy: false };
             document.getElementById('char-modal').style.display = 'block';
             if (mode === 'pick' && getChars().length) renderCharPick(); else renderCharCreate();
         }
@@ -1993,21 +2008,25 @@
                 st.textContent = '⏳ Обработка...';
                 try {
                     d.img = await compressImage(f, 110 * 1024);
+                    d.src = await compressImage(f, 450 * 1024);
                     prev.src = d.img; prev.style.display = 'block';
-                    st.textContent = '✅ Фото добавлено';
+                    st.textContent = '✅ Фото добавлено. Можно сохранить как есть или сделать студийную карточку (шаг 2)';
                     saveBtn.disabled = false;
+                    gen.innerText = genCost ? '✨ Студийная карточка из фото — ' + genCost + ' ⚡' : '✨ Студийная карточка из фото';
                 } catch (e) { st.textContent = '⚠ ' + e.message; }
             });
             body.appendChild(up); body.appendChild(file); body.appendChild(st);
 
             const m = getCatalogModel('nanobanana-pro');
             const genCost = m ? clientCalc(m.price, { res: '1K' }) : null;
-            body.appendChild(payEl('label', '2) Или создайте персонажа нейросетью (Nano Banana Pro)'));
+            body.appendChild(payEl('label', '2) Создайте карточку нейросетью (Nano Banana Pro): по описанию или из загруженного фото'));
             const desc = document.createElement('textarea');
             desc.rows = 3; desc.maxLength = 500;
-            desc.placeholder = 'Опишите внешность: девушка 25 лет, тёмные длинные волосы, карие глаза, лёгкая улыбка, белая футболка';
+            desc.placeholder = 'Без фото: опишите внешность (девушка 25 лет, тёмные волосы, белая футболка). С фото: можно уточнить одежду или стиль, или оставить пустым';
             body.appendChild(desc);
-            const gen = payEl('button', genCost ? '✨ Создать — ' + genCost + ' ⚡' : '✨ Создать');
+            const gen = payEl('button', d.src
+                ? (genCost ? '✨ Студийная карточка из фото — ' + genCost + ' ⚡' : '✨ Студийная карточка из фото')
+                : (genCost ? '✨ Создать — ' + genCost + ' ⚡' : '✨ Создать'));
             gen.className = 'btn-main btn-ghost';
             gen.style.marginTop = '8px';
             gen.addEventListener('click', () => genCharacter(gen, desc, prev, saveBtn, genCost));
@@ -2067,13 +2086,17 @@
             const m = getCatalogModel('nanobanana-pro');
             const desc = descEl.value.trim();
             if (!m) { alert('Модель сейчас недоступна'); return; }
-            if (desc.length < 5) { alert('Опишите внешность персонажа'); return; }
+            const src = charCtx.draft.src;
+            if (!src && desc.length < 5) { alert('Опишите внешность персонажа или загрузите его фото (шаг 1)'); return; }
             if (userCoins < cost) { alert('Недостаточно токенов: нужно ' + cost + ' ⚡, у вас ' + userCoins + ' ⚡.'); openShopModal(); return; }
             charCtx.busy = true;
             const label = btn.innerText;
             btn.disabled = true; btn.innerText = '⏳ Отправка...';
             try {
-                const out = await submitAndWait(m, { prompt: CHAR_PREFIX + desc, aspect: '3:4', res: '1K' }, btn);
+                const v = src
+                    ? { prompt: CHAR_PREFIX + 'Keep exactly the same person as in the reference photo: same face, identity, age, skin tone and hairstyle. ' + desc, aspect: '3:4', res: '1K', ref1: src }
+                    : { prompt: CHAR_PREFIX + desc, aspect: '3:4', res: '1K' };
+                const out = await submitAndWait(m, v, btn);
                 if (!out.ok) { alert('Не получилось: ' + out.error + (out.refunded ? '\n\n⚡ возвращены' : '')); return; }
                 if (!charCtx) return;   // окно закрыли: результат остался в истории
                 const img = await urlToCardImage(out.url);
