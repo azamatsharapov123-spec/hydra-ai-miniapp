@@ -45,20 +45,12 @@ async function tryNext(row, model, userId) {
     [row.id, userId, row.provider, row.route]
   );
   if (!claim.rows[0]) return true;   // переключение уже делает другой запрос
+  // тот же маршрут, что при запуске; цена уже списана и не меняется
   let routes = [];
   try { routes = buildRoutes(model, row.input); } catch (e) { routes = []; }
-  // безлимит работает только через Kie и бесплатно
-  if (row.unl) routes = routes.filter(r => r.provider === 'kie').map(r => ({ ...r, cost: 0 }));
-  let charged = Number(row.cost) || 0;
+  // безлимит работает только через Kie
+  if (row.unl) routes = routes.filter(r => r.provider === 'kie');
   for (let i = row.route + 1; i < routes.length; i++) {
-    // следующий провайдер дороже — списываем разницу; не хватает ⚡ — этот провайдер пропускаем
-    const extra = routes[i].cost - charged;
-    if (extra > 0) {
-      const more = await query('UPDATE users SET coins=coins-$1 WHERE id=$2 AND coins>=$1 RETURNING coins', [extra, userId]);
-      if (!more.rows[0]) { console.error('fallback skipped: not enough coins', model.id, routes[i].provider); continue; }
-      charged += extra;
-      await query('UPDATE jobs SET cost=$2 WHERE id=$1', [row.id, charged]);
-    }
     let sub;
     try { sub = await submit(routes[i]); } catch (e) { sub = { ok: false, error: e.message }; }
     if (sub.ok) {

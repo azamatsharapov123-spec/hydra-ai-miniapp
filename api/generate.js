@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { getModel, validateInput, buildRoutes, unlimitedFor } from '../lib/models.js';
+import { getModel, validateInput, quote, unlimitedFor } from '../lib/models.js';
 import { submit, friendlyError, checkMoneyError } from '../lib/providers.js';
 import { makeToken } from '../lib/jobtoken.js';
 import { query } from '../lib/db.js';
@@ -64,15 +64,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Эта модель недоступна' });
   }
 
-  // 2. Проверяем значения формы и строим маршрут по провайдерам (цены считаются НА СЕРВЕРЕ)
-  let v, routes;
+  // 2. Проверяем значения формы, считаем цену и маршрут НА СЕРВЕРЕ.
+  // price — фиксированная цена: столько клиент видел в приложении, столько и спишется.
+  let v, routes, price;
   try {
     v = validateInput(model, { ...(values || {}), audio_seconds: body.audio_seconds });
-    routes = buildRoutes(model, v);
+    ({ charge: price, routes } = quote(model, v));
   } catch (e) {
     return res.status(400).json({ error: e.message || 'Неверные параметры' });
   }
-  if (!routes.length) {
+  if (!routes.length || !price) {
     return res.status(503).json({ error: 'Эта модель сейчас недоступна с такими настройками. Попробуйте другое качество или модель.' });
   }
 
@@ -86,18 +87,18 @@ export default async function handler(req, res) {
       const q = await takeQuota(user.id, 'unl_' + model.category, cap);
       if (q.ok) {
         unl = 'unl_' + model.category;
-        routes = kieRoutes.map(r => ({ ...r, cost: 0 }));
+        routes = kieRoutes;
       } else if (!body.pay_over_limit) {
         return res.status(429).json({
-          error: `Дневной лимит безлимита исчерпан (${cap} ${model.category === 'video' ? 'видео' : 'картинок'} в сутки, обновится в полночь). Можно сгенерировать за ${routes[0].cost} ⚡.`,
-          unlimited_exhausted: true, cost: routes[0].cost
+          error: `Дневной лимит безлимита исчерпан (${cap} ${model.category === 'video' ? 'видео' : 'картинок'} в сутки, обновится в полночь). Можно сгенерировать за ${price} ⚡.`,
+          unlimited_exhausted: true, cost: price
         });
       }
     }
   }
 
-  // 4. Списываем цену самого дешёвого провайдера одной атомарной операцией (двойная трата невозможна)
-  let charged = routes[0].cost;
+  // 4. Списываем цену одной атомарной операцией (двойная трата невозможна). Больше ничего не доплачивается.
+  const charged = unl ? 0 : price;
   let balance;
   if (charged > 0) {
     const paid = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [charged, user.id]);
@@ -114,21 +115,10 @@ export default async function handler(req, res) {
     if (unl) await giveBack(user.id, unl);
   };
 
-  // 5. Отправляем задачу: сначала дешёвый провайдер, при ошибке — следующий.
-  // Если следующий дороже, списываем разницу (клиент платит по цене того, кто реально делает генерацию).
+  // 5. Отправляем задачу: сначала дешёвый сервер, при ошибке — следующий из маршрута (по той же цене)
   try {
     let used = -1, sub = null, lastErr = '';
     for (let i = 0; i < routes.length; i++) {
-      const extra = routes[i].cost - charged;
-      if (extra > 0) {
-        const more = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [extra, user.id]);
-        if (!more.rows[0]) {
-          lastErr = `Основной сервер не принял задачу, а на резервном нужно ещё ${extra} ⚡. Пополните баланс или попробуйте позже.`;
-          continue;
-        }
-        charged += extra;
-        balance = more.rows[0].coins;
-      }
       try {
         sub = await submit(routes[i]);
       } catch (e) {

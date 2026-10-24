@@ -3,6 +3,7 @@ import { authUser, sendError } from '../lib/auth.js';
 import { WITHDRAW_MIN, refLink, refTier, nextTier, REF_TIERS, UNLIMITED } from '../lib/config.js';
 import { communityData, submitTrend, joinContest } from '../lib/community.js';
 import { quotaLeft } from '../lib/limits.js';
+import { MODELS } from '../lib/models.js';
 
 // GET  /api/me                   — профиль, баланс, партнёрка, безлимит
 // GET  /api/me?section=community — тренды пользователей, конкурсы, мои заявки
@@ -21,6 +22,24 @@ export default async function handler(req, res) {
     }
     if (req.query && req.query.section === 'community') {
       return res.status(200).json(await communityData(user));
+    }
+    // История генераций с сервера: не теряется при смене телефона или очистке Telegram
+    if (req.query && req.query.section === 'history') {
+      const r = await query(
+        `SELECT model, result_url, params, created_at FROM jobs
+         WHERE user_id=$1 AND status='done' AND result_url IS NOT NULL AND created_at > now() - interval '60 days'
+         ORDER BY created_at DESC LIMIT 100`, [user.id]);
+      return res.status(200).json({
+        items: r.rows.map(j => {
+          const m = MODELS.find(x => x.id === j.model);
+          const p = (typeof j.params === 'string' ? JSON.parse(j.params) : j.params) || {};
+          return {
+            url: j.result_url, model: m ? m.name : j.model, modelId: j.model,
+            category: m ? m.category : 'image', prompt: typeof p.prompt === 'string' ? p.prompt.slice(0, 2500) : '',
+            ts: new Date(j.created_at).getTime()
+          };
+        })
+      });
     }
 
     // Задачи, которые зависли больше 70 минут (результат уже не получить), возвращают ⚡

@@ -1023,12 +1023,14 @@
             const left = myInfo.unlimited.left || {};
             return (left[m.category] || 0) > 0;
         }
-        // Цена по маршруту: min — у самого дешёвого подходящего провайдера, max — если придётся перейти на самый дорогой
+        // Фиксированная цена генерации — та же формула, что quote() на сервере.
+        // Если сервер переключится на резервный, доплаты нет: спишется ровно эта цена.
         function routeCost(m, v) {
             const routes = (m.routes && m.routes.length) ? m.routes : [{ p: 'fal', price: m.price }];
             const costs = routes.filter(r => clientMatch(r.when, v)).map(r => clientCalc(r.price, v)).filter(c => c > 0);
-            if (!costs.length) return { min: undefined, max: undefined };
-            return { min: Math.min(...costs), max: Math.max(...costs) };
+            if (!costs.length) return { min: undefined };
+            if (m.sell) { const c = clientCalc(m.sell, v); return { min: c > 0 ? c : undefined }; }
+            return { min: Math.min(...costs) };
         }
         // Цена «от» для списка моделей (по настройкам по умолчанию)
         function fromPrice(m) {
@@ -1106,6 +1108,33 @@
 
         function saveHistoryList(list) {
             localStorage.setItem('hydra_history', JSON.stringify(list));
+        }
+
+        // Удалённые пользователем результаты: при подгрузке с сервера не возвращаем их обратно
+        function hiddenUrls() { try { return new Set(JSON.parse(localStorage.getItem('hydra_hidden')) || []); } catch (e) { return new Set(); } }
+        function hideUrl(u) { const h = hiddenUrls(); h.add(u); try { localStorage.setItem('hydra_hidden', JSON.stringify([...h].slice(-300))); } catch (e) {} }
+
+        // Подтягивает историю с сервера (за 60 дней): она не пропадает при смене телефона
+        async function syncHistory() {
+            try {
+                const r = await apiFetch('/api/me?section=history');
+                if (!r.ok) return;
+                const d = await r.json();
+                const list = getHistoryList();
+                const have = new Set(list.map(x => x.url));
+                const hidden = hiddenUrls();
+                let added = 0;
+                (d.items || []).forEach(it => {
+                    if (!safeUrl(it.url) || have.has(it.url) || hidden.has(it.url)) return;
+                    list.push({ url: it.url, prompt: it.prompt || 'Генерация без текста', model: it.model, modelId: it.modelId, category: it.category,
+                        date: new Date(it.ts).toLocaleDateString([], { day: '2-digit', month: '2-digit' }), ts: it.ts });
+                    added++;
+                });
+                if (!added) return;
+                list.sort((a, b) => (b.ts || 0) - (a.ts || 0));
+                saveHistoryList(list.slice(0, 200));
+                renderHistory();
+            } catch (e) { /* без связи — покажем то, что есть на устройстве */ }
         }
 
         function safeUrl(u) {
@@ -1480,6 +1509,7 @@
             if (viewerIdx < 0) return;
             const doDelete = () => {
                 const list = getHistoryList();
+                if (list[viewerIdx]) hideUrl(list[viewerIdx].url);
                 list.splice(viewerIdx, 1);
                 saveHistoryList(list);
                 closeViewer();
@@ -1832,7 +1862,6 @@
             const btn = document.getElementById('btn-modal-gen');
             window.currentUnlimited = isUnlimited(m, v);
             window.currentCalculatedCost = rc.min;
-            window.currentMaxCost = rc.max;
             if (window.currentUnlimited) {
                 const left = myInfo.unlimited.left[m.category];
                 main.textContent = '∞ бесплатно';
@@ -1845,7 +1874,7 @@
                 main.textContent = `${rc.min} ⚡`;
                 const bits = [];
                 if (m.price.kind === 'chars') bits.push('Цена зависит от длины текста.');
-                if (rc.max > rc.min) bits.push(`Если основной сервер перегружен, сделаем на резервном — до ${rc.max} ⚡, разница спишется автоматически.`);
+                bits.push('Спишется ровно эта сумма. Если генерация не получится, ⚡ вернутся.');
                 if (m.unlim && !unlimitedTier()) bits.push('Эта модель входит в безлимит пакетов «Ультра» и «Безлимит».');
                 note.textContent = bits.join(' ');
             } else if (m.price.kind === 'audioSec') {
@@ -2025,7 +2054,8 @@
         }
 
         async function waitForJob(entry, onTick) {
-            const limit = 20 * 60 * 1000;
+            // длинные видео у провайдеров иногда стоят в очереди дольше 20 минут
+            const limit = (entry.category === 'video' || entry.category === 'avatar' ? 45 : 20) * 60 * 1000;
             let fails = 0;
             while (Date.now() - entry.ts < limit) {
                 try {
@@ -2061,6 +2091,7 @@
                     model: entry.name,
                     modelId: entry.modelId,
                     category: entry.category,
+                    ts: Date.now(),
                     date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
                 renderHistory();
@@ -3242,7 +3273,7 @@
         renderHistory();
         renderCharStrip();
         loadCatalog().then(() => { renderHotModels(); return loadTrends(); });
-        loadMe().then(() => { resumePending(); loadCommunity(); });
+        loadMe().then(() => { resumePending(); loadCommunity(); syncHistory(); });
         document.getElementById('info-modal').addEventListener('click', e => { if (e.target.id === 'info-modal') closeInfo(); });
     </script>
 </body>
