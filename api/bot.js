@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       const text = String(msg.text || '');
 
       // --- команды администратора ---
-      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|help|admin|ai|refs|setref|unlim|trends|untrend|revenue|contest_new|contests|contest|contest_win|contest_end)\b/i.test(text)) {
+      if (isAdmin(msg.from.id) && /^\/(give|take|user|partner|unpartner|pending|stats|report|help|admin|ai|refs|setref|unlim|trends|untrend|revenue|contest_new|contests|contest|contest_win|contest_end)\b/i.test(text)) {
         const reply = await adminCommand(text);
         await sendMessage(msg.chat.id, reply);
         return res.status(200).send('ok');

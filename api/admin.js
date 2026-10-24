@@ -3,6 +3,7 @@ import { query, tx } from '../lib/db.js';
 import { createPayment, creditPayment } from '../lib/payments.js';
 import { webhookSecret, sendMessage } from '../lib/bot.js';
 import { getPackage } from '../lib/config.js';
+import { buildReport } from '../lib/report.js';
 
 const sha = s => crypto.createHash('sha256').update(String(s)).digest();
 
@@ -10,6 +11,22 @@ const sha = s => crypto.createHash('sha256').update(String(s)).digest();
 //   /api/admin?key=ВАШ_ADMIN_SECRET&action=...
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+  // Ежедневный отчёт по расписанию Vercel Cron (vercel.json): Vercel присылает заголовок с CRON_SECRET
+  const cron = process.env.CRON_SECRET;
+  if (req.query?.action === 'daily_report' && cron && cron.length >= 16) {
+    const auth = String(req.headers.authorization || '');
+    if (auth.length === cron.length + 7 && crypto.timingSafeEqual(Buffer.from(auth), Buffer.from('Bearer ' + cron))) {
+      try {
+        const text = await buildReport(1);
+        const ok = await sendMessage(process.env.ADMIN_CHAT_ID, text);
+        return res.json({ ok });
+      } catch (e) {
+        console.error('daily report', e && e.message);
+        await sendMessage(process.env.ADMIN_CHAT_ID, 'Не получилось собрать ежедневный отчёт: ' + (e && e.message)).catch(() => {});
+        return res.status(500).json({ error: 'report failed' });
+      }
+    }
+  }
   const secret = process.env.ADMIN_SECRET;
   if (!secret || secret.length < 12) return res.status(503).json({ error: 'ADMIN_SECRET не настроен (нужно минимум 12 символов)' });
   const key = req.query?.key || req.headers['x-admin-key'] || '';

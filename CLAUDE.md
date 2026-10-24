@@ -30,6 +30,12 @@
 - «✨ Улучшить»: POST /api/generate {category:'enhance', prompt, kind}, бесплатно, 30 в день.
 - Отказ фильтра (`isPolicyError`): резервные серверы не пробуем, ⚡ сразу возвращаются, в приложении кнопки «Повторить в Kling» и «Сделать карточку».
 
+## Отчёт владельцу (lib/report.js)
+
+- `/report [ДНЕЙ]` в боте и автоматически каждый день в 21:00 по Душанбе (vercel.json → cron `0 16 * * *` UTC →
+  /api/admin?action=daily_report, защищён `CRON_SECRET`). На Hobby Vercel запускает cron в пределах часа.
+- Остатки: Kie `/api/v1/chat/credit`, fal `/v1/account/billing?expand=credits`, Atlas `/public/v1/balance`; у Replicate API баланса нет.
+
 ## Сообщество (lib/community.js)
 
 - Заявки в тренды: POST /api/me {action:'trend_submit'}, модерация кнопками в боте (`tr:*`).
