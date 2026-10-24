@@ -2,12 +2,13 @@ import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
 import { WITHDRAW_MIN, refLink, refTier, nextTier, REF_TIERS, UNLIMITED } from '../lib/config.js';
 import { communityData, submitTrend, joinContest } from '../lib/community.js';
-import { quotaLeft } from '../lib/limits.js';
+import { quotaLeft, takeQuota, giveBack } from '../lib/limits.js';
+import { videoUploadUrl } from '../lib/video.js';
 import { MODELS } from '../lib/models.js';
 
 // GET  /api/me                   — профиль, баланс, партнёрка, безлимит
 // GET  /api/me?section=community — тренды пользователей, конкурсы, мои заявки
-// POST /api/me {action:'trend_submit' | 'contest_join', ...}
+// POST /api/me {action:'trend_submit' | 'contest_join' | 'upload_url', ...}
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -18,6 +19,18 @@ export default async function handler(req, res) {
       const b = req.body || {};
       if (b.action === 'trend_submit') return res.status(200).json({ ok: true, ...(await submitTrend(user, b)) });
       if (b.action === 'contest_join') return res.status(200).json(await joinContest(user, b));
+      // Remake: ссылка для загрузки видео прямо в наше хранилище (файл не проходит через сервер)
+      if (b.action === 'upload_url') {
+        const q = await takeQuota(user.id, 'upload', 60);
+        if (!q.ok) return res.status(429).json({ error: 'Слишком много загрузок за сегодня. Попробуйте завтра.' });
+        try {
+          return res.status(200).json(await videoUploadUrl(user.id, String(b.type || ''), Number(b.size), req.headers['x-vercel-oidc-token']));
+        } catch (e) {
+          console.error('upload url', e && e.message);
+          await giveBack(user.id, 'upload');
+          return res.status(400).json({ error: /МБ|видеофайл/.test(e.message) ? e.message : 'Загрузка видео сейчас недоступна. Вставьте прямую ссылку на видео (.mp4)' });
+        }
+      }
       return res.status(400).json({ error: 'Неизвестное действие' });
     }
     if (req.query && req.query.section === 'community') {

@@ -2,7 +2,7 @@ import { getModel, extractUrl, buildRoutes } from '../lib/models.js';
 import { readToken } from '../lib/jobtoken.js';
 import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
-import { submit, poll, keepFile, friendlyError, checkMoneyError } from '../lib/providers.js';
+import { submit, poll, keepFile, friendlyError, checkMoneyError, isPolicyError } from '../lib/providers.js';
 import { giveBack } from '../lib/limits.js';
 
 // Копирование готового видео в своё хранилище может занять несколько секунд
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       }
       if (st.state === 'failed' || giveup) {
         const balance = await refundJob(job.i, user.id);
-        return res.status(200).json({ status: 'FAILED', error: giveup ? 'Генерация заняла слишком много времени' : friendlyError(st.error), balance });
+        return res.status(200).json({ status: 'FAILED', error: giveup ? 'Генерация заняла слишком много времени' : friendlyError(st.error, model.id), balance });
       }
       return res.status(200).json({ status: SHOWN[st.state], position: st.position ?? null });
     }
@@ -133,11 +133,13 @@ export default async function handler(req, res) {
 
     if (st.state === 'failed') {
       console.error('job failed', row.provider, model.id, st.error);
-      if (!giveup && await tryNext(row, model, user.id)) {
+      // отказ фильтра повторится на любом сервере: сразу возвращаем ⚡, без ожидания резервных
+      const policy = isPolicyError(st.error);
+      if (!giveup && !policy && await tryNext(row, model, user.id)) {
         return res.status(200).json({ status: 'IN_QUEUE', position: null });
       }
       const balance = await refundJob(row.id, user.id);
-      return res.status(200).json({ status: 'FAILED', error: friendlyError(st.error), balance });
+      return res.status(200).json({ status: 'FAILED', error: friendlyError(st.error, model.id), policy, balance });
     }
 
     if (giveup) {

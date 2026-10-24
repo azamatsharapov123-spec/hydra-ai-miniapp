@@ -235,7 +235,7 @@
         }
 
         label { font-size: 12px; color: var(--text-secondary); display: block; margin-top: 12px; margin-bottom: 6px; font-weight: 600; }
-        textarea, select, input[type="text"] {
+        textarea, select, input[type="text"], input[type="url"] {
             width: 100%; padding: 12px; border-radius: 12px;
             border: 1px solid var(--border-color); background: #09090b;
             color: #fff; box-sizing: border-box; font-size: 13px; outline: none;
@@ -259,6 +259,24 @@
             color: #d8b4fe; font-size: 11px; padding: 4px 8px; border-radius: 8px;
             cursor: pointer; font-weight: 600; float: right;
         }
+        .btn-magic:disabled { opacity: 0.6; cursor: wait; }
+        .prompt-undo { display: inline-block; font-size: 11px; color: #c4b5fd; margin-top: 4px; cursor: pointer; }
+
+        /* ===== REMAKE ===== */
+        .vid-row { display: flex; gap: 8px; margin-top: 6px; }
+        .vid-row input { flex: 1; min-width: 0; margin: 0; }
+        .vid-progress { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-top: 6px; overflow: hidden; display: none; }
+        .vid-progress > div { height: 100%; width: 0; background: var(--accent-gradient); transition: width .2s; }
+        .vid-soon { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+        .vid-soon b { color: #ffe7a8; }
+        .remake-card { position: relative; overflow: hidden; border-radius: var(--r-card, 16px); padding: 16px; margin-bottom: 14px; cursor: pointer;
+            background: linear-gradient(130deg, #1b0f3d 0%, #3a1150 45%, #8a1f4f 100%); border: 1px solid rgba(255,140,190,0.45); }
+        .remake-kicker { font-size: 10px; font-weight: 800; letter-spacing: .08em; color: #ffd0e4; }
+        .remake-title { font-family: 'Unbounded', 'Onest', sans-serif; font-size: 24px; font-weight: 800; margin: 4px 0 2px; color: #fff; }
+        .remake-sub { font-size: 13px; color: #f3d6e6; max-width: 28ch; }
+        .remake-go { display: inline-block; margin-top: 10px; background: #fff; color: #3a1150; font-weight: 800; font-size: 13px; padding: 8px 14px; border-radius: 999px; }
+        .remake-mark { position: absolute; right: -6px; bottom: -14px; font-size: 92px; opacity: 0.18; transform: rotate(-12deg); pointer-events: none; }
+        .fail-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
         /* ===== ТРЕНДЫ И ПЕРСОНАЖИ ===== */
         .sec-title { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 800; margin: 14px 0 8px; }
@@ -435,8 +453,8 @@
         .partner-box, .profile-user-card, .history-card, .trend-card, .modal-card { background: var(--card-bg); border-color: var(--border-color); backdrop-filter: blur(10px); }
         .modal-overlay { background: rgba(5, 8, 26, 0.78); }
         .modal-card { border-radius: var(--r-sheet); background: linear-gradient(180deg, #18235e, #111a48); }
-        textarea, select, input[type="text"] { background: rgba(6, 10, 34, 0.7); border-color: var(--border-color); border-radius: var(--r-ctrl); font-family: inherit; color: var(--silk); }
-        textarea:focus, select:focus, input[type="text"]:focus { border-color: var(--cobalt); box-shadow: 0 0 0 3px rgba(59,99,255,0.25); }
+        textarea, select, input[type="text"], input[type="url"] { background: rgba(6, 10, 34, 0.7); border-color: var(--border-color); border-radius: var(--r-ctrl); font-family: inherit; color: var(--silk); }
+        textarea:focus, select:focus, input[type="text"]:focus, input[type="url"]:focus { border-color: var(--cobalt); box-shadow: 0 0 0 3px rgba(59,99,255,0.25); }
         .btn-main { font-family: inherit; border-radius: var(--r-ctrl); box-shadow: 0 10px 24px rgba(59,99,255,0.3); }
         .btn-main:focus-visible, .btn-gold:focus-visible, .btn-glass:focus-visible, .model-pick:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
         .btn-main:disabled { opacity: 0.55; }
@@ -539,6 +557,14 @@
                 <button class="btn-gold" onclick="openModal('video')">Создать видео</button>
                 <button class="btn-glass" onclick="switchPage('ideas')">Смотреть тренды</button>
             </div>
+        </div>
+
+        <div class="remake-card" role="button" tabindex="0" onclick="openModelWith('remake')">
+            <div class="remake-mark" aria-hidden="true">🎭</div>
+            <div class="remake-kicker">НОВИНКА · HYDRA REMAKE</div>
+            <div class="remake-title">Стань героем любого видео</div>
+            <div class="remake-sub">Загрузите ролик и своё фото — нейросеть заменит человека в видео на вас или вашего персонажа.</div>
+            <span class="remake-go">Попробовать →</span>
         </div>
 
         <div id="home-contest"></div>
@@ -1039,6 +1065,12 @@
             const prices = (m.routes || []).map(x => clientCalc(x.price, defaultValues(m))).filter(c => c > 0);
             return prices.length ? Math.min(...prices) : undefined;
         }
+        // Самая низкая цена секунды видео (Remake)
+        function secRateLabel(m) {
+            const p = m.sell || m.price;
+            const r = Math.min(...Object.values(p.table || {}));
+            return Number.isFinite(r) ? String(Math.round(r * 10) / 10).replace('.', ',') : '?';
+        }
         function rateLabel(m) {
             const routes = (m.routes && m.routes.length) ? m.routes : [{ price: m.price }];
             const rate = Math.min(...routes.map(r => r.price.rate || Infinity));
@@ -1058,6 +1090,11 @@
                 }
                 case 'chars': return ceil(String(v.prompt || '').length / 1000 * p.rate);
                 case 'audioSec': return v.audio_seconds ? ceil(p.rate * v.audio_seconds) : undefined;
+                case 'videoSec': {
+                    const r = p.table[v.res];
+                    if (r === undefined || !v.video_seconds) return undefined;
+                    return ceil(r * Math.max(1, Math.ceil(v.video_seconds - 0.1)));
+                }
                 case 'frames': return p.table[v.res] ? p.table[v.res][v.frames] : undefined;
                 case 'grid': return p.table[v[p.a]] ? p.table[v[p.a]][v[p.b]] : undefined;
             }
@@ -1079,6 +1116,7 @@
         function priceLabel(m) {
             if (m.price.kind === 'chars') return `${rateLabel(m)} ⚡ / 1000 симв.`;
             if (m.price.kind === 'audioSec') return `${rateLabel(m)} ⚡ / сек`;
+            if (m.price.kind === 'videoSec') return `от ${secRateLabel(m)} ⚡ / сек`;
             const c = fromPrice(m);
             return c ? `от ${c} ⚡` : '';
         }
@@ -1288,12 +1326,26 @@
             const info = document.createElement('div');
             info.className = 'history-info';
             const top = document.createElement('div');
-            const pr = document.createElement('div'); pr.className = 'history-prompt'; pr.textContent = f.error;
+            const pr = document.createElement('div'); pr.className = 'history-prompt'; pr.textContent = f.error; pr.style.cssText = 'display:block; -webkit-line-clamp:unset; overflow:visible;';
             const meta = document.createElement('div'); meta.className = 'history-meta'; meta.textContent = `${f.name} • ${f.cost} ⚡ возвращены`;
             top.appendChild(pr); top.appendChild(meta);
             const btn = document.createElement('div'); btn.className = 'history-btn'; btn.textContent = 'Убрать';
             btn.addEventListener('click', () => { failedJobs = failedJobs.filter(x => x.id !== f.id); renderHistory(); });
-            info.appendChild(top); info.appendChild(btn);
+            info.appendChild(top);
+            const acts = document.createElement('div'); acts.className = 'fail-actions';
+            // Фильтр отклонил фото: предлагаем модель помягче и карточку персонажа
+            if (f.policy && f.category === 'video' && f.modelId !== 'kling-3.0' && getCatalogModel('kling-3.0')) {
+                const k = document.createElement('div'); k.className = 'history-btn'; k.textContent = '🎬 Повторить в Kling 3.0';
+                k.addEventListener('click', () => openModelWith('kling-3.0', f.prompt));
+                acts.appendChild(k);
+            }
+            if (f.policy && /^seedance/.test(f.modelId || '')) {
+                const c = document.createElement('div'); c.className = 'history-btn'; c.textContent = '👤 Сделать карточку';
+                c.addEventListener('click', () => openCharModal('create'));
+                acts.appendChild(c);
+            }
+            acts.appendChild(btn);
+            info.appendChild(acts);
             card.appendChild(info);
             return card;
         }
@@ -1588,6 +1640,17 @@
             document.getElementById('model-sheet').style.display = 'block';
         }
         function closeModelSheet() { document.getElementById('model-sheet').style.display = 'none'; }
+        // Открывает окно генерации сразу на нужной модели (и с текстом запроса, если он есть)
+        async function openModelWith(id, prompt) {
+            if (!catalogReady) await loadCatalog();
+            const m = getCatalogModel(id);
+            if (!m) { alert('Модель сейчас недоступна'); return; }
+            await openModal(m.category);
+            document.getElementById('modal-model-select').value = m.id;
+            onModelSelectChange();
+            const ta = document.getElementById('f-prompt');
+            if (ta && prompt) { ta.value = prompt; recalculateCost(); }
+        }
         function updateModelPick(m) {
             document.getElementById('mp-name').textContent = m.name;
             document.getElementById('mp-desc').textContent = [priceLabel(m), m.desc].filter(Boolean).join(' · ');
@@ -1686,6 +1749,180 @@
             }
         }
 
+        // ===== REMAKE: видео файлом или прямой ссылкой =====
+        const SOON_VIDEO_HOSTS = /(^|\.)(instagram\.com|tiktok\.com|youtube\.com|youtu\.be|vk\.com|vkvideo\.ru|likee\.video|facebook\.com|fb\.watch)$/i;
+
+        // Длительность видео (сек) по ссылке или файлу
+        function videoDuration(src) {
+            return new Promise((resolve, reject) => {
+                const el = document.createElement('video');
+                const timer = setTimeout(() => { el.removeAttribute('src'); reject(new Error('Не удалось открыть видео')); }, 15000);
+                el.preload = 'metadata';
+                el.muted = true;
+                el.onloadedmetadata = () => { clearTimeout(timer); const d = el.duration; el.removeAttribute('src'); el.load(); Number.isFinite(d) && d > 0 ? resolve(d) : reject(new Error('Не удалось определить длительность видео')); };
+                el.onerror = () => { clearTimeout(timer); reject(new Error('Не удалось открыть видео. Нужен файл MP4 или MOV')); };
+                el.src = src;
+            });
+        }
+
+        function videoMaxFor(m) {
+            const lim = m.videoLimits || { min: 1, max: 30 };
+            const sel = lim.maxBy ? document.getElementById('f-' + lim.maxBy.key) : null;
+            return { min: lim.min, max: sel && sel.value === lim.maxBy.value ? lim.maxBy.max : lim.max };
+        }
+
+        // Загружает файл в хранилище по одноразовой ссылке с сервера. onProgress(0..1). Возвращает ссылку на файл.
+        async function uploadVideoFile(file, onProgress) {
+            const r = await apiFetch('/api/me', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'upload_url', type: file.type || 'video/mp4', size: file.size })
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok || !d.url) throw new Error(d.error || 'Загрузка видео сейчас недоступна');
+            return await new Promise((resolve, reject) => {
+                const x = new XMLHttpRequest();
+                x.open('PUT', d.url);
+                x.setRequestHeader('x-vercel-blob-access', 'public');
+                x.setRequestHeader('x-content-type', file.type || 'video/mp4');
+                x.setRequestHeader('x-api-version', '13');
+                if (d.storeId) x.setRequestHeader('x-vercel-blob-store-id', d.storeId);
+                x.upload.onprogress = e => { if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total); };
+                x.onload = () => {
+                    let j = {};
+                    try { j = JSON.parse(x.responseText); } catch (e) { j = {}; }
+                    if (x.status >= 200 && x.status < 300 && typeof j.url === 'string' && /^https:\/\//.test(j.url)) resolve(j.url);
+                    else reject(new Error('Не удалось загрузить видео (' + x.status + '). Попробуйте ещё раз'));
+                };
+                x.onerror = () => reject(new Error('Обрыв связи при загрузке видео. Попробуйте ещё раз'));
+                x.send(file);
+            });
+        }
+
+        function renderVideoField(m, f, wrap) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.className = 'file-hidden';
+            input.accept = 'video/mp4,video/quicktime,video/*';
+            const up = document.createElement('div');
+            up.className = 'upload-box';
+            const lim = m.videoLimits || { max: 30 };
+            up.textContent = `🎬 Загрузить видео (до ${lim.max} сек, до 100 МБ)`;
+            const row = document.createElement('div');
+            row.className = 'vid-row';
+            const link = document.createElement('input');
+            link.type = 'url';
+            link.inputMode = 'url';
+            link.placeholder = 'или вставьте ссылку на видео (.mp4)';
+            const ok = document.createElement('button');
+            ok.type = 'button';
+            ok.className = 'btn-magic';
+            ok.style.float = 'none';
+            ok.textContent = 'OK';
+            row.appendChild(link); row.appendChild(ok);
+            const soon = document.createElement('div');
+            soon.className = 'vid-soon';
+            soon.innerHTML = '🔜 Ссылки из <b>Instagram, TikTok и YouTube — скоро</b>. Пока скачайте ролик на телефон и загрузите файлом.';
+            const bar = document.createElement('div');
+            bar.className = 'vid-progress';
+            const fill = document.createElement('div');
+            bar.appendChild(fill);
+            const status = document.createElement('div');
+            status.className = 'file-status';
+            const prev = document.createElement('video');
+            prev.muted = true; prev.playsInline = true; prev.controls = true; prev.preload = 'metadata';
+            prev.style.cssText = 'display:none; width:100%; max-height:200px; border-radius:12px; background:#09090b; margin-top:6px;';
+            const clear = document.createElement('div');
+            clear.className = 'file-clear';
+            clear.textContent = '✕ Убрать видео';
+            let busy = false;
+            const reset = () => {
+                delete fileData[f.key]; delete fileSecs[f.key];
+                prev.style.display = 'none'; prev.removeAttribute('src');
+                clear.style.display = 'none';
+                bar.style.display = 'none'; fill.style.width = '0';
+            };
+            const accept = (url, sec, label) => {
+                fileData[f.key] = url;
+                fileSecs[f.key] = sec;
+                prev.src = url; prev.style.display = 'block';
+                status.textContent = `✅ ${label} • ${Math.round(sec)} сек`;
+                clear.style.display = 'inline-block';
+                recalculateCost();
+            };
+            const checkSecs = sec => {
+                const l = videoMaxFor(m);
+                if (sec < l.min) throw new Error(`Видео короче ${l.min} сек`);
+                if (sec > l.max + 0.5) throw new Error(`Видео длиннее ${l.max} сек. Обрежьте ролик в галерее телефона и загрузите снова`);
+            };
+            up.addEventListener('click', () => { if (!busy) input.click(); });
+            input.addEventListener('change', async () => {
+                const file = input.files && input.files[0];
+                input.value = '';
+                if (!file || busy) return;
+                reset();
+                recalculateCost();
+                busy = true;
+                try {
+                    if (file.type && !/^video\//i.test(file.type)) throw new Error('Это не видео. Нужен файл MP4 или MOV');
+                    if (file.size > 100 * 1024 * 1024) throw new Error('Видео больше 100 МБ. Обрежьте или сожмите ролик');
+                    status.textContent = '⏳ Проверяем видео...';
+                    const local = URL.createObjectURL(file);
+                    let sec;
+                    try { sec = await videoDuration(local); } finally { URL.revokeObjectURL(local); }
+                    checkSecs(sec);
+                    status.textContent = '⏳ Загружаем видео... 0%';
+                    bar.style.display = 'block';
+                    const url = await uploadVideoFile(file, p => {
+                        fill.style.width = Math.round(p * 100) + '%';
+                        status.textContent = '⏳ Загружаем видео... ' + Math.round(p * 100) + '%';
+                    });
+                    bar.style.display = 'none';
+                    accept(url, sec, file.name);
+                } catch (e) {
+                    reset();
+                    status.textContent = '⚠ ' + e.message;
+                    recalculateCost();
+                } finally {
+                    busy = false;
+                }
+            });
+            const useLink = async () => {
+                const raw = link.value.trim();
+                if (!raw || busy) return;
+                let u;
+                try { u = new URL(raw); } catch (e) { status.textContent = '⚠ Это не похоже на ссылку'; return; }
+                if (u.protocol !== 'https:') { status.textContent = '⚠ Нужна ссылка, которая начинается с https://'; return; }
+                if (SOON_VIDEO_HOSTS.test(u.hostname)) { status.textContent = '🔜 Ссылки из Instagram, TikTok и YouTube появятся скоро. Пока скачайте ролик и загрузите файлом'; return; }
+                reset();
+                recalculateCost();
+                busy = true;
+                try {
+                    status.textContent = '⏳ Открываем видео по ссылке...';
+                    let sec;
+                    try { sec = await videoDuration(u.toString()); } catch (e) { throw new Error('Не удалось открыть видео по ссылке. Нужна прямая ссылка на файл .mp4'); }
+                    checkSecs(sec);
+                    accept(u.toString(), sec, 'Видео по ссылке');
+                } catch (e) {
+                    status.textContent = '⚠ ' + e.message;
+                } finally {
+                    busy = false;
+                }
+            };
+            ok.addEventListener('click', useLink);
+            link.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); useLink(); } });
+            clear.addEventListener('click', () => { reset(); link.value = ''; status.textContent = ''; recalculateCost(); });
+            wrap.appendChild(up);
+            wrap.appendChild(row);
+            wrap.appendChild(soon);
+            if (f.hint) { const h = document.createElement('div'); h.className = 'file-hint'; h.textContent = f.hint; wrap.appendChild(h); }
+            wrap.appendChild(input);
+            wrap.appendChild(bar);
+            wrap.appendChild(status);
+            wrap.appendChild(prev);
+            wrap.appendChild(clear);
+        }
+
         function renderFields(m) {
             const box = document.getElementById('dyn-fields');
             box.innerHTML = '';
@@ -1714,12 +1951,18 @@
 
                 const label = document.createElement('label');
                 label.textContent = f.label + ((f.type === 'file' && f.required) ? ' *' : '');
-                if (f.type === 'prompt' && f.required && (currentCat === 'image' || currentCat === 'video')) {
+                let undo = null;
+                const enhanceKind = currentCat === 'image' || currentCat === 'video' ? currentCat : (/^suno/.test(m.id) ? 'audio' : '');
+                if (f.type === 'prompt' && enhanceKind) {
                     const magic = document.createElement('button');
                     magic.className = 'btn-magic';
                     magic.type = 'button';
                     magic.textContent = '✨ Улучшить';
-                    magic.addEventListener('click', enhanceTextPrompt);
+                    undo = document.createElement('span');
+                    undo.className = 'prompt-undo';
+                    undo.textContent = '↩ Вернуть как было';
+                    undo.style.display = 'none';
+                    magic.addEventListener('click', () => enhancePromptIn(document.getElementById('f-prompt'), magic, enhanceKind, undo));
                     label.appendChild(magic);
                 }
                 wrap.appendChild(label);
@@ -1739,6 +1982,7 @@
                     ta.placeholder = f.placeholder || '';
                     ta.addEventListener('input', recalculateCost);
                     wrap.appendChild(ta);
+                    if (undo) wrap.appendChild(undo);
                 } else if (f.type === 'select') {
                     const sel = document.createElement('select');
                     sel.id = 'f-' + f.key;
@@ -1766,6 +2010,8 @@
                     row.appendChild(rg);
                     row.appendChild(val);
                     wrap.appendChild(row);
+                } else if (f.type === 'file' && f.accept === 'video') {
+                    renderVideoField(m, f, wrap);
                 } else if (f.type === 'file') {
                     const input = document.createElement('input');
                     input.type = 'file';
@@ -1836,6 +2082,7 @@
                 else v[f.key] = el.value;
             });
             if (fileSecs.audio) v.audio_seconds = Math.ceil(fileSecs.audio);
+            if (fileSecs.video) v.video_seconds = fileSecs.video;
             return v;
         }
 
@@ -1858,6 +2105,13 @@
             const v = collectValues(m);
             const rc = routeCost(m, v);
             const main = document.getElementById('cost-main');
+            if (m.videoLimits && v.video_seconds && v.video_seconds > videoMaxFor(m).max + 0.5) {
+                window.currentUnlimited = false;
+                window.currentCalculatedCost = undefined;
+                main.textContent = '';
+                document.getElementById('cost-note').textContent = `С этими настройками видео должно быть не длиннее ${videoMaxFor(m).max} сек. Выберите «Как в видео» или загрузите ролик короче.`;
+                return;
+            }
             const note = document.getElementById('cost-note');
             const btn = document.getElementById('btn-modal-gen');
             window.currentUnlimited = isUnlimited(m, v);
@@ -1875,23 +2129,57 @@
                 const bits = [];
                 if (m.price.kind === 'chars') bits.push('Цена зависит от длины текста.');
                 bits.push('Спишется ровно эта сумма. Если генерация не получится, ⚡ вернутся.');
+                if (/^seedance/.test(m.id) && (v.image || CHAR_KEYS_C.some(k => v[k]))) {
+                    bits.push('⚠ Seedance часто блокирует фото реальных людей. Лучше загрузите карточку персонажа или выберите Kling / Veo.');
+                }
                 if (m.unlim && !unlimitedTier()) bits.push('Эта модель входит в безлимит пакетов «Ультра» и «Безлимит».');
                 note.textContent = bits.join(' ');
             } else if (m.price.kind === 'audioSec') {
                 main.textContent = '';
                 note.textContent = `${rateLabel(m)} ⚡ за секунду аудио — добавьте аудио`;
+            } else if (m.price.kind === 'videoSec' && !v.video_seconds) {
+                const rate = (m.price.table || {})[v.res];
+                main.textContent = '';
+                note.textContent = `${rate ? String(Math.round(rate * 10) / 10).replace('.', ',') : secRateLabel(m)} ⚡ за каждую секунду ролика. Загрузите видео — цена посчитается сразу.`;
             } else {
                 main.textContent = '';
                 note.textContent = 'Эта модель не работает с такими настройками. Измените качество или уберите фото.';
             }
         }
 
-        function enhanceTextPrompt() {
-            const promptArea = document.getElementById('f-prompt');
-            if (!promptArea || !promptArea.value.trim()) { alert("Введите текст запроса!"); return; }
-            if (promptArea.value.startsWith('Masterpiece, ultra-detailed')) return;
-            promptArea.value = "Masterpiece, ultra-detailed, professional quality: " + promptArea.value;
-            recalculateCost();
+        // «✨ Улучшить»: нейросеть переписывает идею в подробный промпт (бесплатно, лимит в день).
+        // textarea — поле с текстом, btn — кнопка, kind — image | video | audio, undoEl — ссылка «Вернуть как было»
+        let enhanceBusy = false;
+        async function enhancePromptIn(textarea, btn, kind, undoEl) {
+            if (!textarea || enhanceBusy) return;
+            const before = textarea.value.trim();
+            if (before.length < 2) { alert('Сначала напишите своими словами, что хотите получить. Например: «бабушка улыбается и машет рукой»'); return; }
+            enhanceBusy = true;
+            const label = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ Улучшаю…';
+            try {
+                const r = await apiFetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: 'enhance', prompt: before, kind, max: textarea.maxLength > 0 ? textarea.maxLength : 1200 })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok || !d.success) { alert(d.error || 'Не получилось улучшить, попробуйте ещё раз'); return; }
+                textarea.value = d.result.text;
+                textarea.dispatchEvent(new Event('input'));
+                if (undoEl) {
+                    undoEl.style.display = 'inline';
+                    undoEl.onclick = () => { textarea.value = before; textarea.dispatchEvent(new Event('input')); undoEl.style.display = 'none'; };
+                }
+                showToast(typeof d.left === 'number' ? `Промпт улучшен. Осталось сегодня: ${d.left}` : 'Промпт улучшен', 2500);
+            } catch (e) {
+                alert('Ошибка сети при обращении к серверу');
+            } finally {
+                enhanceBusy = false;
+                btn.disabled = false;
+                btn.textContent = label;
+            }
         }
 
         // ===== ЧАТ AI И ПОДДЕРЖКА =====
@@ -2063,7 +2351,7 @@
                     const d = await r.json();
                     fails = 0;
                     if (d.status === 'COMPLETED') return { ok: true, url: d.url };
-                    if (d.status === 'FAILED') return { ok: false, error: d.error || 'Ошибка генерации', balance: d.balance };
+                    if (d.status === 'FAILED') return { ok: false, error: d.error || 'Ошибка генерации', balance: d.balance, policy: !!d.policy };
                     if (r.status === 401) return { ok: false, error: d.error || 'Откройте приложение через Telegram' };
                     if (onTick) onTick(d, Date.now() - entry.ts);
                 } catch (e) {
@@ -2112,7 +2400,7 @@
             const res = await apiFetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: m.id, values: v, audio_seconds: v.audio_seconds, pay_over_limit: !!payOverLimit })
+                body: JSON.stringify({ model: m.id, values: v, audio_seconds: v.audio_seconds, video_seconds: v.video_seconds, pay_over_limit: !!payOverLimit })
             });
             const data = await res.json().catch(() => ({}));
             // дневной лимит безлимита закончился: спрашиваем, сгенерировать ли за ⚡
@@ -2133,7 +2421,7 @@
         }
 
         function jobFailed(entry, result) {
-            failedJobs.unshift({ id: entry.job, name: entry.name, prompt: entry.prompt, error: result.error || 'Ошибка генерации', cost: entry.cost, category: entry.category });
+            failedJobs.unshift({ id: entry.job, name: entry.name, modelId: entry.modelId, prompt: entry.prompt, error: result.error || 'Ошибка генерации', cost: entry.cost, category: entry.category, policy: !!result.policy });
             failedJobs = failedJobs.slice(0, 5);
         }
 
@@ -2206,7 +2494,19 @@
         let TRENDS = [];
         const CHARS_KEY = 'hydra_chars_v1';
         const MAX_CHARS = 12;
-        const CHAR_PREFIX = 'Character reference portrait, a single person, face clearly visible, front view, plain neutral light background, soft natural lighting, photorealistic. ';
+        // Стили карточки персонажа. «sheet» — лист персонажа с нескольких ракурсов в лёгкой 3D-стилизации:
+        // такую картинку Seedance обычно принимает (живое фото реального человека он блокирует).
+        const CHAR_STYLES = [
+            { id: 'sheet', name: '🎬 Для видео: несколько ракурсов', aspect: '4:3',
+              hint: 'Лучше всего для видео: Seedance, Kling, Veo. Лицо сохраняется, а фильтр не считает картинку фото реального человека.',
+              prompt: 'Character reference sheet of one single character on a plain light grey background: front view, three-quarter view, side profile and full-body view side by side, the same face, hairstyle and outfit in every view, soft even studio lighting, high-quality semi-realistic 3D animated film style, clearly a stylized digital character, not a photograph, no text, no labels. ' },
+            { id: 'portrait', name: '📸 Реалистичный портрет', aspect: '3:4',
+              hint: 'Фотореализм для картинок и Kling. Seedance такую карточку может не принять.',
+              prompt: 'Character reference portrait, a single person, face clearly visible, front view, plain neutral light background, soft natural lighting, photorealistic. ' },
+            { id: 'cartoon', name: '✏️ Мультяшный персонаж', aspect: '3:4',
+              hint: 'Яркий мультяшный стиль: подходит для любых моделей и детских роликов.',
+              prompt: 'Cute stylized cartoon character in modern 3D animated movie style, one single character, full body and face clearly visible, front view, plain light background, soft lighting, no text. ' }
+        ];
 
         const mediaUrl = u => (typeof u === 'string' && /^(\/trends\/[\w./%-]+|https:\/\/[^\s"'<>]+)$/.test(u)) ? u : '';
 
@@ -2505,10 +2805,30 @@
             const m = getCatalogModel('nanobanana-pro');
             const genCost = m ? routeCost(m, { res: '1K', aspect: '3:4' }).min : null;
             body.appendChild(payEl('label', '2) Создайте карточку нейросетью (Nano Banana Pro): по описанию или из загруженного фото'));
+            const style = document.createElement('select');
+            CHAR_STYLES.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; style.appendChild(o); });
+            style.value = d.style || 'sheet';
+            const styleHint = payEl('div', '', 'font-size:11px; color:var(--text-secondary); margin-top:4px;');
+            const showStyle = () => { d.style = style.value; styleHint.textContent = (CHAR_STYLES.find(s => s.id === style.value) || {}).hint || ''; };
+            style.addEventListener('change', showStyle);
+            showStyle();
+            body.appendChild(style);
+            body.appendChild(styleHint);
+            const descLabel = payEl('label', 'Описание (необязательно, если есть фото)');
+            const magic = payEl('button', '✨ Улучшить');
+            magic.type = 'button';
+            magic.className = 'btn-magic';
+            descLabel.appendChild(magic);
+            body.appendChild(descLabel);
             const desc = document.createElement('textarea');
             desc.rows = 3; desc.maxLength = 500;
             desc.placeholder = 'Без фото: опишите внешность (девушка 25 лет, тёмные волосы, белая футболка). С фото: можно уточнить одежду или стиль, или оставить пустым';
             body.appendChild(desc);
+            const undo = payEl('span', '↩ Вернуть как было');
+            undo.className = 'prompt-undo';
+            undo.style.display = 'none';
+            body.appendChild(undo);
+            magic.addEventListener('click', () => enhancePromptIn(desc, magic, 'image', undo));
             const gen = payEl('button', d.src
                 ? (genCost ? '✨ Студийная карточка из фото — ' + genCost + ' ⚡' : '✨ Студийная карточка из фото')
                 : (genCost ? '✨ Создать — ' + genCost + ' ⚡' : '✨ Создать'));
@@ -2556,6 +2876,8 @@
         }
 
         async function urlToCardImage(url) {
+            // результат уже лежит в нашем хранилище навсегда: храним ссылку, а не тяжёлую копию в памяти телефона
+            if (/^https:\/\/[a-z0-9-]+\.public\.blob\.vercel-storage\.com\//i.test(url)) return url;
             try {
                 const r = await fetch(url);
                 if (!r.ok) throw new Error('fetch');
@@ -2578,9 +2900,10 @@
             const label = btn.innerText;
             btn.disabled = true; btn.innerText = '⏳ Отправка...';
             try {
+                const st = CHAR_STYLES.find(s => s.id === charCtx.draft.style) || CHAR_STYLES[0];
                 const v = src
-                    ? { prompt: CHAR_PREFIX + 'Keep exactly the same person as in the reference photo: same face, identity, age, skin tone and hairstyle. ' + desc, aspect: '3:4', res: '1K', ref1: src }
-                    : { prompt: CHAR_PREFIX + desc, aspect: '3:4', res: '1K' };
+                    ? { prompt: st.prompt + 'Keep exactly the same person as in the reference photo: same face shape, identity, age, skin tone and hairstyle. ' + desc, aspect: st.aspect, res: '1K', ref1: src }
+                    : { prompt: st.prompt + desc, aspect: st.aspect, res: '1K' };
                 const out = await submitAndWait(m, v, btn);
                 if (!out.ok) { alert('Не получилось: ' + out.error + (out.refunded ? '\n\n⚡ возвращены' : '')); return; }
                 if (!charCtx) return;   // окно закрыли: результат остался в истории
@@ -2902,7 +3225,7 @@
         }
 
         // ===== ПОПУЛЯРНЫЕ МОДЕЛИ НА ГЛАВНОЙ =====
-        const HOT_MODELS = ['seedance-2.5', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
+        const HOT_MODELS = ['remake', 'seedance-2.5', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
         function renderHotModels() {
             const box = document.getElementById('hot-models');
             if (!box) return;

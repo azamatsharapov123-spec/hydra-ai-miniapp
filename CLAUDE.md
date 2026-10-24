@@ -22,6 +22,14 @@
 - Безлимит: поле `unlim: { tier, when }`, лимиты в `UNLIMITED` (lib/config.js), пакеты `ultra`/`unlimited`.
   Безлимит работает только через Kie.
 
+## Remake, улучшение промпта, фильтры
+
+- Remake (`remake` — Wan 2.2 Animate Replace, `remake-pro` — Kling 3.0 Motion Control, только Kie): цена `videoSec` за секунду ролика.
+  Видео загружается из браузера прямо в Vercel Blob по одноразовой ссылке (POST /api/me {action:'upload_url'}, lib/video.js),
+  длительность сервер читает сам из MP4/MOV (`probeVideo`). Ссылки Instagram/TikTok/YouTube пока не поддерживаются («скоро»).
+- «✨ Улучшить»: POST /api/generate {category:'enhance', prompt, kind}, бесплатно, 30 в день.
+- Отказ фильтра (`isPolicyError`): резервные серверы не пробуем, ⚡ сразу возвращаются, в приложении кнопки «Повторить в Kling» и «Сделать карточку».
+
 ## Сообщество (lib/community.js)
 
 - Заявки в тренды: POST /api/me {action:'trend_submit'}, модерация кнопками в боте (`tr:*`).
