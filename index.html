@@ -559,11 +559,11 @@
             </div>
         </div>
 
-        <div class="remake-card" role="button" tabindex="0" onclick="openModelWith(getCatalogModel('remake') ? 'remake' : 'remake-pro')">
+        <div class="remake-card" role="button" tabindex="0" onclick="openModelWith(getCatalogModel('remake-face') ? 'remake-face' : 'remake-pro')">
             <div class="remake-mark" aria-hidden="true">🎭</div>
             <div class="remake-kicker">НОВИНКА · HYDRA REMAKE</div>
             <div class="remake-title">Стань героем любого видео</div>
-            <div class="remake-sub">Загрузите ролик и своё фото — нейросеть заменит человека в видео на вас или вашего персонажа.</div>
+            <div class="remake-sub">Загрузите ролик и своё фото — нейросеть поставит ваше лицо, а одежда, фон и речь останутся как в видео.</div>
             <span class="remake-go">Попробовать →</span>
         </div>
 
@@ -3270,7 +3270,7 @@
         }
 
         // ===== ПОПУЛЯРНЫЕ МОДЕЛИ НА ГЛАВНОЙ =====
-        const HOT_MODELS = ['remake', 'remake-pro', 'seedance-2.5', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
+        const HOT_MODELS = ['remake-face', 'remake-pro', 'seedance-2.5', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
         function renderHotModels() {
             const box = document.getElementById('hot-models');
             if (!box) return;
