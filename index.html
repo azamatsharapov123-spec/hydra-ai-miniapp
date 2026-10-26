@@ -1578,6 +1578,8 @@
         let currentCat = 'image';
         let fileData = {};
         let fileSecs = {};
+        let fileOrig = {};      // исходные фото кадров видео: чтобы заново обрезать при смене формата
+        let fileUi = {};        // строка статуса у каждого поля с файлом
 
         async function openModal(cat) {
             if (!catalogReady) await loadCatalog();
@@ -1682,19 +1684,27 @@
         }
 
         // Уменьшает фото, чтобы оно уместилось в лимит размера запроса
-        function compressImage(file, maxBytes) {
+        // aspect ('16:9' и т.п.) — обрезать по центру под этот формат (для начального и конечного кадра видео)
+        function compressImage(file, maxBytes, aspect) {
             return new Promise((resolve, reject) => {
                 const url = URL.createObjectURL(file);
                 const img = new Image();
                 img.onload = () => {
                     URL.revokeObjectURL(url);
-                    const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
-                    let w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+                    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+                    const am = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(aspect || '');
+                    if (am) {
+                        const target = Number(am[1]) / Number(am[2]);
+                        if (sw / sh > target) { const nw = Math.round(sh * target); sx = Math.round((sw - nw) / 2); sw = nw; }
+                        else { const nh = Math.round(sw / target); sy = Math.round((sh - nh) / 2); sh = nh; }
+                    }
+                    const scale = Math.min(1, 1280 / Math.max(sw, sh));
+                    let w = Math.round(sw * scale), h = Math.round(sh * scale);
                     let q = 0.85;
                     for (let i = 0; i < 14; i++) {
                         const c = document.createElement('canvas');
                         c.width = w; c.height = h;
-                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
                         const uri = c.toDataURL('image/jpeg', q);
                         if (uri.length * 0.75 <= maxBytes) return resolve(uri);
                         if (q > 0.55) q -= 0.1; else { w = Math.round(w * 0.85); h = Math.round(h * 0.85); }
@@ -1717,8 +1727,30 @@
             });
         }
 
+        // Видео из фото: многие модели делают ролик в формате самого фото (квадратное фото = квадратное видео).
+        // Поэтому начальный и конечный кадр обрезаем под выбранный формат.
+        function frameAspect(m, key) {
+            if (!m || m.category !== 'video' || !['image', 'image_end'].includes(key)) return '';
+            const sel = document.getElementById('f-aspect');
+            return sel && /^\d+:\d+$/.test(sel.value) ? sel.value : '';
+        }
+        async function recropFrames(m) {
+            for (const key of ['image', 'image_end']) {
+                const file = fileOrig[key], ui = fileUi[key];
+                if (!file || !fileData[key]) continue;
+                const f = m.fields.find(x => x.key === key);
+                const asp = frameAspect(m, key);
+                try {
+                    fileData[key] = await compressImage(file, f.maxBytes, asp);
+                    if (ui) ui.textContent = `✅ ${file.name}` + (asp ? ` • обрезано под ${asp}` : '');
+                } catch (e) { /* оставляем прежний кадр */ }
+            }
+            recalculateCost();
+        }
+
         async function handleFile(m, f, input, status, clearBtn) {
             const file = input.files[0];
+            delete fileOrig[f.key];
             delete fileData[f.key];
             delete fileSecs[f.key];
             clearBtn.style.display = 'none';
@@ -1726,9 +1758,11 @@
             status.textContent = '⏳ Обработка...';
             try {
                 if (f.accept === 'image') {
-                    const uri = await compressImage(file, f.maxBytes);
+                    const asp = frameAspect(m, f.key);
+                    const uri = await compressImage(file, f.maxBytes, asp);
                     fileData[f.key] = uri;
-                    status.textContent = `✅ ${file.name} (${Math.round(uri.length * 0.75 / 1024)} КБ)`;
+                    fileOrig[f.key] = file;
+                    status.textContent = `✅ ${file.name} (${Math.round(uri.length * 0.75 / 1024)} КБ)` + (asp ? ` • обрезано под ${asp}` : '');
                 } else {
                     if (file.size > f.maxBytes) throw new Error(`Файл больше ${(f.maxBytes / 1048576).toFixed(1).replace('.', ',')} МБ`);
                     let uri = await readAsDataURL(file);
@@ -1928,6 +1962,8 @@
             box.innerHTML = '';
             fileData = {};
             fileSecs = {};
+            fileOrig = {};
+            fileUi = {};
 
             m.fields.forEach(f => {
                 const wrap = document.createElement('div');
@@ -1993,8 +2029,14 @@
                         sel.appendChild(opt);
                     });
                     sel.value = String(f.default);
-                    sel.addEventListener('change', recalculateCost);
+                    sel.addEventListener('change', f.key === 'aspect' ? () => recropFrames(m) : recalculateCost);
                     wrap.appendChild(sel);
+                    if (f.key === 'aspect' && m.category === 'video' && m.fields.some(x => x.key === 'image')) {
+                        const h = document.createElement('div');
+                        h.className = 'file-hint';
+                        h.textContent = 'Начальный и конечный кадр обрежутся под этот формат, чтобы видео не вышло квадратным.';
+                        wrap.appendChild(h);
+                    }
                 } else if (f.type === 'range') {
                     const row = document.createElement('div');
                     row.className = 'range-row';
@@ -2025,10 +2067,12 @@
                     const clear = document.createElement('div');
                     clear.className = 'file-clear';
                     clear.textContent = '✕ Убрать файл';
+                    fileUi[f.key] = status;
                     up.addEventListener('click', () => input.click());
                     input.addEventListener('change', async () => { await handleFile(m, f, input, status, clear); recalculateCost(); });
                     clear.addEventListener('click', () => {
                         input.value = '';
+                        delete fileOrig[f.key];
                         delete fileData[f.key];
                         delete fileSecs[f.key];
                         status.textContent = '';
@@ -2045,6 +2089,7 @@
                             if (!c) return;
                             input.value = '';
                             delete fileSecs[f.key];
+                            delete fileOrig[f.key];
                             fileData[f.key] = c.img;
                             status.textContent = '✅ Карточка «' + c.name + '»';
                             clear.style.display = 'inline-block';
