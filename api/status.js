@@ -4,6 +4,7 @@ import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
 import { submit, poll, keepFile, friendlyError, checkMoneyError, isPolicyError } from '../lib/providers.js';
 import { giveBack } from '../lib/limits.js';
+import { advanceChain } from '../lib/chain.js';
 
 // Копирование готового видео в своё хранилище может занять несколько секунд
 export const config = { maxDuration: 60 };
@@ -123,10 +124,11 @@ export default async function handler(req, res) {
     }
     if (row.provider === 'switching') return res.status(200).json({ status: 'IN_QUEUE', position: null });
 
-    const st = await poll(row.provider, row.ext || {}, extract);
+    // длинное видео по частям: опрос двигает задачу по этапам (нарезка → обработка → склейка)
+    const st = row.provider === 'chain' ? await advanceChain(row, model) : await poll(row.provider, row.ext || {}, extract);
 
     if (st.state === 'done') {
-      const url = await keepFile(st.url, row.provider, model.output, req.headers['x-vercel-oidc-token']);
+      const url = await keepFile(st.url, row.provider === 'chain' ? 'fal' : row.provider, model.output, req.headers['x-vercel-oidc-token']);
       await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL, provider_credits=$4 WHERE id=$1 AND user_id=$2 AND status='pending'`, [row.id, user.id, url, st.credits || null]);
       return res.status(200).json({ status: 'COMPLETED', url });
     }
@@ -135,7 +137,7 @@ export default async function handler(req, res) {
       console.error('job failed', row.provider, model.id, st.error);
       // отказ фильтра повторится на любом сервере: сразу возвращаем ⚡, без ожидания резервных
       const policy = isPolicyError(st.error);
-      if (!giveup && !policy && await tryNext(row, model, user.id)) {
+      if (!giveup && !policy && row.provider !== 'chain' && await tryNext(row, model, user.id)) {
         return res.status(200).json({ status: 'IN_QUEUE', position: null });
       }
       const balance = await refundJob(row.id, user.id);
@@ -146,7 +148,7 @@ export default async function handler(req, res) {
       const balance = await refundJob(row.id, user.id);
       return res.status(200).json({ status: 'FAILED', error: 'Генерация заняла слишком много времени', balance });
     }
-    return res.status(200).json({ status: SHOWN[st.state] || 'IN_PROGRESS', position: st.position ?? null });
+    return res.status(200).json({ status: SHOWN[st.state] || 'IN_PROGRESS', position: st.position ?? null, ...(st.step ? { step: st.step, parts: st.parts } : {}) });
   } catch (e) {
     // сеть моргнула — приложение просто спросит ещё раз
     console.error('status error', e && e.message);

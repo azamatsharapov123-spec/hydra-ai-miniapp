@@ -24,7 +24,7 @@
 
 ## Remake, улучшение промпта, фильтры
 
-- Remake: `remake-face` («Remake Hydra AI», в каталоге второй после Seedance 2.5; провайдера клиентам не называем) — Kling O3 Edit на fal (меняется только лицо, одежда/фон/речь из видео, 3–15 сек); `remake-pro` — Kling 3.0 Motion Control на Kie (персонаж с фото вместе с одеждой и фоном повторяет движения); `remake` — Wan 2.2 Animate Replace (скрыт, сбой у Kie). Цена `videoSec` за секунду ролика.
+- Remake: `remake-face` («Remake Hydra AI», в каталоге второй после Seedance 2.5; провайдера клиентам не называем) — Kling O3 Edit на fal (меняется только лицо, одежда/фон/речь из видео, до 3 лиц, 3–60 сек: ролик длиннее 15 сек режется на части, обрабатывается и склеивается — lib/chain.js, задача с provider='chain'); `remake-pro` — Kling 3.0 Motion Control на Kie (персонаж с фото вместе с одеждой и фоном повторяет движения); `remake` — Wan 2.2 Animate Replace (скрыт, сбой у Kie). Цена `videoSec` за секунду ролика.
   Видео загружается из браузера прямо в Vercel Blob по одноразовой ссылке (POST /api/me {action:'upload_url'}, lib/video.js),
   длительность сервер читает сам из MP4/MOV (`probeVideo`). Ссылки Instagram/TikTok/YouTube пока не поддерживаются («скоро»).
 - «✨ Улучшить»: POST /api/generate {category:'enhance', prompt, kind}, бесплатно, 30 в день.

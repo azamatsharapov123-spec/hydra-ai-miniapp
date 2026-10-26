@@ -563,7 +563,7 @@
             <div class="remake-mark" aria-hidden="true">🎭</div>
             <div class="remake-kicker">НОВИНКА · REMAKE HYDRA AI</div>
             <div class="remake-title">Стань героем любого видео</div>
-            <div class="remake-sub">Загрузите ролик и своё фото — нейросеть поставит ваше лицо, а одежда, фон и речь останутся как в видео.</div>
+            <div class="remake-sub">Загрузите ролик и своё фото — нейросеть поставит ваше лицо, а одежда, фон и речь останутся как в видео. До 3 человек в кадре, ролик до 60 сек.</div>
             <span class="remake-go">Попробовать →</span>
         </div>
 
@@ -1357,7 +1357,10 @@
             });
             document.querySelectorAll('[data-job-status]').forEach(el => {
                 const stt = jobState[el.dataset.jobStatus];
-                el.textContent = stt === 'IN_PROGRESS' ? 'Генерируется…' : stt === 'IN_QUEUE' ? 'В очереди…' : 'Отправлено…';
+                const st = jobStep[el.dataset.jobStatus];
+                // длинное видео обрабатывается по частям: показываем этап
+                el.textContent = st ? `Этап ${st.step} из 3: ${['нарезка видео', `обработка ${st.parts} частей`, 'склейка'][st.step - 1] || 'обработка'}…`
+                    : stt === 'IN_PROGRESS' ? 'Генерируется…' : stt === 'IN_QUEUE' ? 'В очереди…' : 'Отправлено…';
             });
         }
         setInterval(() => { if (document.getElementById('page-history').classList.contains('active-page')) updatePendingCards(); }, 1000);
@@ -2438,6 +2441,7 @@
         // ===== ФОНОВЫЕ ЗАДАЧИ: результат появляется в Истории сам =====
         const tracking = new Set();     // задачи, которые приложение сейчас ждёт
         const jobState = {};            // job -> 'IN_QUEUE' | 'IN_PROGRESS'
+        const jobStep = {};             // job -> { step, parts } для длинного видео по частям
         let failedJobs = [];            // неудавшиеся задачи этой сессии (⚡ уже возвращены)
 
         // Отправляет задачу на сервер. Если приняли, ⚡ уже списаны, а задача записана как «идёт».
@@ -2474,9 +2478,10 @@
         function trackJob(entry) {
             if (tracking.has(entry.job)) return;
             tracking.add(entry.job);
-            waitForJob(entry, d => { jobState[entry.job] = d.status; updatePendingCards(); }).then(result => {
+            waitForJob(entry, d => { jobState[entry.job] = d.status; if (d.step) jobStep[entry.job] = { step: d.step, parts: d.parts }; updatePendingCards(); }).then(result => {
                 tracking.delete(entry.job);
                 delete jobState[entry.job];
+                delete jobStep[entry.job];
                 if (!result.ok) jobFailed(entry, result);
                 finishJob(entry, result);
                 renderHistory();

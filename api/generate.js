@@ -6,6 +6,7 @@ import { query } from '../lib/db.js';
 import { authUser, sendError } from '../lib/auth.js';
 import { askLLM } from '../lib/llm.js';
 import { checkVideoUrl, probeVideo } from '../lib/video.js';
+import { needsChain, startChain } from '../lib/chain.js';
 import { takeQuota, giveBack } from '../lib/limits.js';
 import { CHAT_DAILY_LIMIT, UNLIMITED } from '../lib/config.js';
 
@@ -115,6 +116,7 @@ export default async function handler(req, res) {
   // 2. Проверяем значения формы, считаем цену и маршрут НА СЕРВЕРЕ.
   // price — фиксированная цена: столько клиент видел в приложении, столько и спишется.
   let v, routes, price;
+  let exactSeconds = 0;
   try {
     // Remake: длительность ролика сервер читает сам из файла. Если приложение посчитало почти так же
     // (±1 сек), берём его число, чтобы списалось ровно то, что клиент видел.
@@ -129,6 +131,7 @@ export default async function handler(req, res) {
       if (!probe) throw new Error('Не удалось открыть видео. Нужен файл MP4 или MOV (или прямая ссылка на него)');
       const client = Number(body.video_seconds);
       videoSeconds = Number.isFinite(client) && Math.abs(client - probe.seconds) <= 1 ? client : probe.seconds;
+      exactSeconds = probe.seconds;
     }
     v = validateInput(model, { ...(values || {}), audio_seconds: body.audio_seconds, video_seconds: videoSeconds });
     ({ charge: price, routes } = quote(model, v));
@@ -180,7 +183,16 @@ export default async function handler(req, res) {
   // 5. Отправляем задачу: сначала дешёвый сервер, при ошибке — следующий из маршрута (по той же цене)
   try {
     let used = -1, sub = null, lastErr = '';
-    for (let i = 0; i < routes.length; i++) {
+    const chain = needsChain(model, v);
+    if (chain) {
+      // длинное видео: режем на части, обрабатываем и склеиваем (lib/chain.js), всё на fal
+      routes = routes.filter(r => r.provider === 'fal');
+      if (routes.length) {
+        sub = await startChain(model, v, exactSeconds);
+        if (sub.ok) { used = 0; routes = [{ ...routes[0], provider: 'chain' }]; } else lastErr = sub.error;
+      } else lastErr = 'Длинные видео сейчас недоступны';
+    }
+    for (let i = 0; !chain && i < routes.length; i++) {
       try {
         sub = await submit(routes[i]);
       } catch (e) {
@@ -198,7 +210,7 @@ export default async function handler(req, res) {
     }
 
     const jobId = 'h' + crypto.randomBytes(12).toString('base64url');
-    const hasMore = used < routes.length - 1;
+    const hasMore = !chain && used < routes.length - 1;
     // настройки без файлов: пригодятся, если клиент отправит результат в тренды
     const params = {};
     for (const [k, x] of Object.entries(v)) if (typeof x !== 'string' || !/^(data:|https?:)/.test(x)) params[k] = x;
@@ -206,7 +218,7 @@ export default async function handler(req, res) {
     try {
       await query(
         `INSERT INTO jobs (id, user_id, model, cost, provider, ext, route, input, unl, params) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [jobId, user.id, model.id, charged, routes[used].provider, JSON.stringify(sub.ref), used, hasMore ? JSON.stringify(v) : null, unl, JSON.stringify(params)]
+        [jobId, user.id, model.id, charged, routes[used].provider, JSON.stringify(sub.ref), used, hasMore || chain ? JSON.stringify(v) : null, unl, JSON.stringify(params)]
       );
     } catch (e) {
       await refund();
