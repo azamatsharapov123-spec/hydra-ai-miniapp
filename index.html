@@ -561,7 +561,7 @@
 
         <div class="remake-card" role="button" tabindex="0" onclick="openModelWith(getCatalogModel('remake-face') ? 'remake-face' : 'remake-pro')">
             <div class="remake-mark" aria-hidden="true">🎭</div>
-            <div class="remake-kicker">НОВИНКА · HYDRA REMAKE</div>
+            <div class="remake-kicker">НОВИНКА · REMAKE HYDRA AI</div>
             <div class="remake-title">Стань героем любого видео</div>
             <div class="remake-sub">Загрузите ролик и своё фото — нейросеть поставит ваше лицо, а одежда, фон и речь останутся как в видео.</div>
             <span class="remake-go">Попробовать →</span>
@@ -1334,7 +1334,7 @@
             info.appendChild(top);
             const acts = document.createElement('div'); acts.className = 'fail-actions';
             // Фильтр отклонил фото: предлагаем модель помягче и карточку персонажа
-            if (f.policy && f.category === 'video' && f.modelId !== 'kling-3.0' && getCatalogModel('kling-3.0')) {
+            if (f.policy && f.category === 'video' && f.modelId !== 'kling-3.0' && !/^remake/.test(f.modelId || '') && getCatalogModel('kling-3.0')) {
                 const k = document.createElement('div'); k.className = 'history-btn'; k.textContent = '🎬 Повторить в Kling 3.0';
                 k.addEventListener('click', () => openModelWith('kling-3.0', f.prompt));
                 acts.appendChild(k);
@@ -3270,7 +3270,7 @@
         }
 
         // ===== ПОПУЛЯРНЫЕ МОДЕЛИ НА ГЛАВНОЙ =====
-        const HOT_MODELS = ['remake-face', 'remake-pro', 'seedance-2.5', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
+        const HOT_MODELS = ['seedance-2.5', 'remake-face', 'remake-pro', 'nanobanana-pro', 'veo-3-fast', 'kling-3.0', 'kling-4.0', 'gpt-image-2', 'suno-v6'];
         function renderHotModels() {
             const box = document.getElementById('hot-models');
             if (!box) return;
