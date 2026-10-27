@@ -101,6 +101,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       id: String(user.id),
       unlimited,
+      free_upscale: !!(user.free_upscale_until && new Date(user.free_upscale_until) > new Date()),
       coins,
       is_new: isNew,
       ref_code: user.ref_code,

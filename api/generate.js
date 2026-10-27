@@ -163,7 +163,10 @@ export default async function handler(req, res) {
   }
 
   // 4. Списываем цену одной атомарной операцией (двойная трата невозможна). Больше ничего не доплачивается.
-  const charged = unl ? 0 : price;
+  // Бесплатное улучшение до 1080p для блогеров-партнёров (/upscale в боте)
+  const free = !unl && model.freeForPartner && v.res === model.freeForPartner &&
+    user.free_upscale_until && new Date(user.free_upscale_until) > new Date();
+  const charged = unl || free ? 0 : price;
   let balance;
   if (charged > 0) {
     const paid = await query('UPDATE users SET coins = coins - $1 WHERE id = $2 AND coins >= $1 RETURNING coins', [charged, user.id]);
@@ -230,7 +233,7 @@ export default async function handler(req, res) {
       success: true,
       job,
       cost: charged,
-      unlimited: !!unl,
+      unlimited: !!unl || !!free,
       new_balance: balance
     });
   } catch (error) {

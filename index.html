@@ -798,6 +798,7 @@
                 <div class="viewer-act" onclick="viewerCopyLink()"><span class="ic ico" data-ico="link"></span>Ссылка</div>
                 <div class="viewer-act" onclick="viewerCopyPrompt()"><span class="ic ico" data-ico="doc"></span>Промпт</div>
                 <div class="viewer-act" onclick="viewerShare()"><span class="ic ico" data-ico="share"></span>Поделиться</div>
+                <div class="viewer-act gold" id="va-upscale" onclick="viewerUpscale()"><span class="ic ico" data-ico="bolt"></span>Улучшить до 1080p</div>
                 <div class="viewer-act gold" onclick="viewerToTrends()"><span class="ic ico" data-ico="flame"></span>В тренды</div>
                 <div class="viewer-act danger" onclick="viewerDelete()"><span class="ic ico" data-ico="trash"></span>Удалить</div>
                 <div class="viewer-act" onclick="closeViewer()"><span class="ic ico" data-ico="close"></span>Закрыть</div>
@@ -1389,9 +1390,19 @@
             stage.appendChild(media);
 
             document.getElementById('va-file').style.display = item.category === 'image' ? '' : 'none';
+            document.getElementById('va-upscale').style.display = item.category === 'video' && getCatalogModel('upscale-video') ? '' : 'none';
             document.getElementById('viewer-prompt').textContent = item.prompt || 'Без запроса';
             document.getElementById('viewer-meta').textContent = `${item.model} • ${item.date}`;
             document.getElementById('viewer-modal').style.display = 'block';
+        }
+
+        // Готовое видео → «Улучшить качество до 1080p» с уже подставленным роликом
+        async function viewerUpscale() {
+            const item = currentViewerItem();
+            if (!item || !item.url) return;
+            closeViewer();
+            await openModelWith('upscale-video');
+            if (videoPrefill.video) videoPrefill.video(item.url);
         }
 
         function closeViewer() {
@@ -1787,6 +1798,7 @@
         }
 
         // ===== REMAKE: видео файлом или прямой ссылкой =====
+        const videoPrefill = {};   // key -> функция, подставляющая ссылку на видео в поле
         const SOON_VIDEO_HOSTS = /(^|\.)(instagram\.com|tiktok\.com|youtube\.com|youtu\.be|vk\.com|vkvideo\.ru|likee\.video|facebook\.com|fb\.watch)$/i;
 
         // Длительность видео (сек) по ссылке или файлу
@@ -1947,6 +1959,7 @@
                 }
             };
             ok.addEventListener('click', useLink);
+            videoPrefill[f.key] = url => { link.value = url; useLink(); };
             link.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); useLink(); } });
             clear.addEventListener('click', () => { reset(); link.value = ''; status.textContent = ''; recalculateCost(); });
             wrap.appendChild(up);
@@ -2164,6 +2177,14 @@
             const btn = document.getElementById('btn-modal-gen');
             window.currentUnlimited = isUnlimited(m, v);
             window.currentCalculatedCost = rc.min;
+            // улучшение до 1080p бесплатно для блогеров-партнёров
+            if (m.id === 'upscale-video' && v.res === '1080p' && myInfo && myInfo.free_upscale) {
+                window.currentUnlimited = true;
+                main.textContent = '🎁 бесплатно';
+                note.textContent = v.video_seconds ? 'Для вас улучшение до 1080p бесплатное и без ограничений.' : 'Для вас бесплатно. Загрузите видео.';
+                btn.textContent = '🚀 Улучшить бесплатно';
+                return;
+            }
             if (window.currentUnlimited) {
                 const left = myInfo.unlimited.left[m.category];
                 main.textContent = '∞ бесплатно';
