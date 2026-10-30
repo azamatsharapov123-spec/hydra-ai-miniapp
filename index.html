@@ -1799,6 +1799,7 @@
 
         // ===== REMAKE: видео файлом или прямой ссылкой =====
         const videoPrefill = {};   // key -> функция, подставляющая ссылку на видео в поле
+        let videoUploading = 0;    // сколько видео сейчас грузится: пока >0, нельзя открывать выбор фото и нажимать «Сгенерировать»
         const SOON_VIDEO_HOSTS = /(^|\.)(instagram\.com|tiktok\.com|youtube\.com|youtu\.be|vk\.com|vkvideo\.ru|likee\.video|facebook\.com|fb\.watch)$/i;
 
         // Длительность видео (сек) по ссылке или файлу
@@ -1822,6 +1823,17 @@
 
         // Загружает файл в хранилище по одноразовой ссылке с сервера. onProgress(0..1). Возвращает ссылку на файл.
         async function uploadVideoFile(file, onProgress) {
+            // при обрыве связи (например, телефон на секунду свернул приложение) пробуем ещё раз
+            for (let attempt = 1; ; attempt++) {
+                try { return await uploadVideoOnce(file, onProgress); }
+                catch (e) {
+                    if (attempt >= 2 || !/Обрыв связи/.test(e.message)) throw e;
+                    if (onProgress) onProgress(0);
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+        }
+        async function uploadVideoOnce(file, onProgress) {
             const r = await apiFetch('/api/me', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1912,6 +1924,7 @@
                 reset();
                 recalculateCost();
                 busy = true;
+                videoUploading++;
                 try {
                     if (file.type && !/^video\//i.test(file.type)) throw new Error('Это не видео. Нужен файл MP4 или MOV');
                     if (file.size > 100 * 1024 * 1024) throw new Error('Видео больше 100 МБ. Обрежьте или сожмите ролик');
@@ -1932,8 +1945,10 @@
                     reset();
                     status.textContent = '⚠ ' + e.message;
                     recalculateCost();
+                    showToast('Видео не загрузилось: ' + e.message, 5000);
                 } finally {
                     busy = false;
+                    videoUploading = Math.max(0, videoUploading - 1);
                 }
             });
             const useLink = async () => {
@@ -2084,7 +2099,10 @@
                     clear.className = 'file-clear';
                     clear.textContent = '✕ Убрать файл';
                     fileUi[f.key] = status;
-                    up.addEventListener('click', () => input.click());
+                    up.addEventListener('click', () => {
+                        if (videoUploading) { showToast('Сначала дождитесь загрузки видео, потом добавляйте фото', 3500); return; }
+                        input.click();
+                    });
                     input.addEventListener('change', async () => { await handleFile(m, f, input, status, clear); recalculateCost(); });
                     clear.addEventListener('click', () => {
                         input.value = '';
@@ -2524,6 +2542,7 @@
         async function executeModalGen() {
             const m = currentModel();
             if (!m) return;
+            if (videoUploading) { alert('Видео ещё загружается. Подождите, пока рядом с ним появится ✅, и нажмите «Сгенерировать» ещё раз.'); return; }
             const v = collectValues(m);
 
             for (const f of m.fields) {
