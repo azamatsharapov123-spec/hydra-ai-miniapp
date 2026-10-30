@@ -5,6 +5,7 @@ import { authUser, sendError } from '../lib/auth.js';
 import { submit, poll, keepFile, friendlyError, checkMoneyError, isPolicyError } from '../lib/providers.js';
 import { giveBack } from '../lib/limits.js';
 import { advanceChain } from '../lib/chain.js';
+import { dropSource } from '../lib/video.js';
 
 // Копирование готового видео в своё хранилище может занять несколько секунд
 export const config = { maxDuration: 60 };
@@ -21,12 +22,15 @@ function okUrl(u) {
 }
 
 // Возврат ⚡ за неудавшуюся задачу. Срабатывает один раз, повтор ничего не меняет.
+let lastOidc;   // токен Vercel текущего запроса: нужен, чтобы удалять исходные ролики из хранилища
 async function refundJob(jobId, userId) {
+  const old = await query('SELECT input FROM jobs WHERE id=$1 AND user_id=$2 AND status=\'pending\'', [jobId, userId]).catch(() => ({ rows: [] }));
   const j = await query(
     `UPDATE jobs SET status='refunded', input=NULL WHERE id=$1 AND user_id=$2 AND status='pending' RETURNING cost, unl`,
     [jobId, userId]
   );
   if (j.rows[0]) {
+    if (old.rows[0] && old.rows[0].input) await dropSource(old.rows[0].input.video, lastOidc);
     if (j.rows[0].unl) await giveBack(userId, j.rows[0].unl);
     const u = await query('UPDATE users SET coins=coins+$1 WHERE id=$2 RETURNING coins', [j.rows[0].cost, userId]);
     return u.rows[0].coins;
@@ -72,6 +76,7 @@ async function tryNext(row, model, userId) {
 }
 
 export default async function handler(req, res) {
+  lastOidc = req.headers['x-vercel-oidc-token'];
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const FAL_KEY = process.env.FAL_KEY;
@@ -129,7 +134,8 @@ export default async function handler(req, res) {
 
     if (st.state === 'done') {
       const url = await keepFile(st.url, row.provider === 'chain' ? 'fal' : row.provider, model.output, req.headers['x-vercel-oidc-token']);
-      await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL, provider_credits=$4 WHERE id=$1 AND user_id=$2 AND status='pending'`, [row.id, user.id, url, st.credits || null]);
+      const fin = await query(`UPDATE jobs SET status='done', result_url=$3, input=NULL, provider_credits=$4 WHERE id=$1 AND user_id=$2 AND status='pending' RETURNING id`, [row.id, user.id, url, st.credits || null]);
+      if (fin.rows[0] && row.input) await dropSource(row.input.video, req.headers['x-vercel-oidc-token']);
       return res.status(200).json({ status: 'COMPLETED', url });
     }
 
