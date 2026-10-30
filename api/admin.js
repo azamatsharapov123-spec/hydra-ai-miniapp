@@ -4,7 +4,7 @@ import { createPayment, creditPayment } from '../lib/payments.js';
 import { webhookSecret, sendMessage } from '../lib/bot.js';
 import { getPackage } from '../lib/config.js';
 import { buildReport } from '../lib/report.js';
-import { contentGen, contentCheck } from '../lib/content.js';
+import { contentGen, contentCheck, contentBatch, contentList } from '../lib/content.js';
 
 // Генерация видео и опрос провайдеров может занять время
 export const config = { maxDuration: 60 };
@@ -31,14 +31,16 @@ export default async function handler(req, res) {
       }
     }
   }
-  // Контент для своих соцсетей (lib/content.js): отдельный ключ CONTENT_KEY, только эти два действия
+  // Контент для своих соцсетей (lib/content.js): отдельный ключ CONTENT_KEY, только действия content_*
   const ck = process.env.CONTENT_KEY;
-  if (/^content_(gen|check)$/.test(req.query?.action || '') && ck && ck.length >= 24) {
+  if (/^content_(gen|check|batch|list)$/.test(req.query?.action || '') && ck && ck.length >= 24) {
     if (!crypto.timingSafeEqual(sha(req.query?.key || ''), sha(ck))) return res.status(403).json({ error: 'forbidden' });
     try {
-      const out = req.query.action === 'content_gen'
-        ? await contentGen(req.query)
-        : await contentCheck(req.headers['x-vercel-oidc-token']);
+      const a = req.query.action;
+      const out = a === 'content_gen' ? await contentGen(req.query)
+        : a === 'content_batch' ? await contentBatch(req.query)
+        : a === 'content_list' ? await contentList(req.query)
+        : await contentCheck(req.headers['x-vercel-oidc-token'], req.query.limit);
       return res.json(out);
     } catch (e) {
       return res.status(400).json({ error: String(e.message || e) });
