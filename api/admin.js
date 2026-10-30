@@ -4,6 +4,10 @@ import { createPayment, creditPayment } from '../lib/payments.js';
 import { webhookSecret, sendMessage } from '../lib/bot.js';
 import { getPackage } from '../lib/config.js';
 import { buildReport } from '../lib/report.js';
+import { contentGen, contentCheck } from '../lib/content.js';
+
+// Генерация видео и опрос провайдеров может занять время
+export const config = { maxDuration: 60 };
 
 const sha = s => crypto.createHash('sha256').update(String(s)).digest();
 
@@ -25,6 +29,19 @@ export default async function handler(req, res) {
         await sendMessage(process.env.ADMIN_CHAT_ID, 'Не получилось собрать ежедневный отчёт: ' + (e && e.message)).catch(() => {});
         return res.status(500).json({ error: 'report failed' });
       }
+    }
+  }
+  // Контент для своих соцсетей (lib/content.js): отдельный ключ CONTENT_KEY, только эти два действия
+  const ck = process.env.CONTENT_KEY;
+  if (/^content_(gen|check)$/.test(req.query?.action || '') && ck && ck.length >= 24) {
+    if (!crypto.timingSafeEqual(sha(req.query?.key || ''), sha(ck))) return res.status(403).json({ error: 'forbidden' });
+    try {
+      const out = req.query.action === 'content_gen'
+        ? await contentGen(req.query)
+        : await contentCheck(req.headers['x-vercel-oidc-token']);
+      return res.json(out);
+    } catch (e) {
+      return res.status(400).json({ error: String(e.message || e) });
     }
   }
   const secret = process.env.ADMIN_SECRET;
